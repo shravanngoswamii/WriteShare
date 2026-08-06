@@ -6,6 +6,7 @@ import { auth, beginOAuth, completeOAuth, githubClient, logout, setToken } from 
 
 const router = useRouter();
 const oauth = CMS_CONFIG.auth.oauth;
+const $baseUrl = import.meta.env.BASE_URL;
 
 const oauthConfigured = computed(
   () => CMS_CONFIG.auth.method === "oauth" && Boolean(oauth.clientId) && Boolean(oauth.exchangeUrl),
@@ -70,17 +71,7 @@ function useOAuth(): void {
   <div class="login-page">
     <div class="login-hero">
       <div class="logo" aria-hidden="true">
-        <svg viewBox="0 0 100 100" width="52" height="52">
-          <rect width="100" height="100" rx="24" fill="var(--accent)" />
-          <path
-            d="M30 70 L40 30 L50 60 L60 30 L70 70"
-            fill="none"
-            stroke="#fff"
-            stroke-width="7"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
+        <img class="logo-img" :src="`${$baseUrl}favicon.svg`" alt="" width="76" height="76" />
       </div>
 
       <h1>WriteShare</h1>
@@ -149,10 +140,9 @@ function useOAuth(): void {
   text-align: center;
 }
 
-.logo {
-  display: inline-grid;
-  place-items: center;
-  border-radius: 24px;
+.logo-img {
+  display: inline-block;
+  border-radius: 22%;
   box-shadow: var(--shadow-card);
   margin-bottom: 1.25rem;
 }
