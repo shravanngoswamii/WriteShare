@@ -143,7 +143,6 @@ function useOAuth(): void {
 .logo-img {
   display: inline-block;
   border-radius: 22%;
-  box-shadow: var(--shadow-card);
   margin-bottom: 1.25rem;
 }
 
@@ -174,21 +173,17 @@ h1 {
   border-radius: 999px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .github-btn {
-    background: #f5f5f7;
-    color: #1d1d1f;
-  }
+[data-theme="dark"] .github-btn {
+  background: #f5f5f7;
+  color: #1d1d1f;
 }
 
 .github-btn:hover:not(:disabled) {
   background: #333336;
 }
 
-@media (prefers-color-scheme: dark) {
-  .github-btn:hover:not(:disabled) {
-    background: #ffffff;
-  }
+[data-theme="dark"] .github-btn:hover:not(:disabled) {
+  background: #ffffff;
 }
 
 .oauth-note {

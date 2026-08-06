@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Crepe } from "@milkdown/crepe";
 import { onBeforeUnmount, onMounted, ref } from "vue";
+import { resolvedTheme } from "@/stores/theme";
 
 import "@milkdown/crepe/theme/common/style.css";
 import "katex/dist/katex.min.css";
@@ -13,8 +14,8 @@ let crepe: Crepe | null = null;
 let ready = false;
 
 onMounted(async () => {
-  // Frame theme follows the OS/app appearance; only one theme CSS may load.
-  await (window.matchMedia("(prefers-color-scheme: dark)").matches
+  // Frame theme follows the app theme store; only one theme CSS may load.
+  await (resolvedTheme() === "dark"
     ? import("@milkdown/crepe/theme/frame-dark.css")
     : import("@milkdown/crepe/theme/frame.css"));
 
@@ -47,11 +48,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* Borderless "paper on canvas": radius + shadow separate it from the canvas. */
+/* Borderless "paper on canvas": radius + tonal contrast separate it. */
 .md-editor {
   background: var(--paper);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
   min-height: 70vh;
   overflow: hidden;
 }

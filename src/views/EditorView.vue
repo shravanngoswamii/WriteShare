@@ -3,16 +3,16 @@ import { computed, onBeforeUnmount, onMounted, reactive, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import FrontmatterForm from "@/components/FrontmatterForm.vue";
 import MarkdownEditor from "@/components/MarkdownEditor.vue";
+import ThemeToggle from "@/components/ThemeToggle.vue";
 import { BLOG_COLLECTION, CMS_CONFIG } from "@/config";
 import { parsePost, serializePost } from "@/lib/frontmatter";
 import { draftBranchFor, kebab } from "@/lib/slug";
 import { githubClient } from "@/stores/auth";
+import { activeRepo, ensureDefaultBranch } from "@/stores/repos";
 
 const route = useRoute();
 const router = useRouter();
 const collection = BLOG_COLLECTION;
-const repoCfg = CMS_CONFIG.repo;
-const repoCoord = { owner: repoCfg.owner, repo: repoCfg.repo };
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 
@@ -29,20 +29,25 @@ const state = reactive({
   error: "",
   prUrl: null as string | null,
   savedAt: null as Date | null,
+  baseBranch: "",
 });
 
+const target = computed(() => activeRepo());
 const title = computed(() => String(state.fm.title ?? "") || "Untitled");
-const branchUrl = computed(
-  () =>
-    `https://github.com/${repoCfg.owner}/${repoCfg.repo}/tree/${encodeURIComponent(state.branch)}`,
+const branchUrl = computed(() =>
+  target.value
+    ? `https://github.com/${target.value.owner}/${target.value.repo}/tree/${encodeURIComponent(state.branch)}`
+    : "#",
 );
 
 onMounted(async () => {
   try {
+    const repo = target.value;
+    if (!repo) throw new Error("No repository selected. Pick one from the repositories screen.");
     if (state.isNew) {
       const rawTitle = String(route.query.title ?? "Untitled");
       const folder = String(route.query.folder ?? "").replace(/^\/+|\/+$/g, "");
-      const dir = folder ? `${collection.path}/${folder}` : collection.path;
+      const dir = folder ? `${repo.contentPath}/${folder}` : repo.contentPath;
       state.repoPath = `${dir}/${kebab(rawTitle)}${collection.extension}`;
       state.branch = draftBranchFor(state.repoPath);
       state.fm = { ...collection.template, title: rawTitle, pubDatetime: new Date().toISOString() };
@@ -54,9 +59,10 @@ onMounted(async () => {
       state.repoPath = path;
       state.branch = draftBranchFor(path);
       const client = githubClient();
+      state.baseBranch = await ensureDefaultBranch(client);
       // Resume the draft branch if it already holds this file; else read the published version.
-      const draft = await client.getFile(repoCoord, state.branch, path).catch(() => null);
-      const base = draft ? null : await client.getFile(repoCoord, repoCfg.baseBranch, path);
+      const draft = await client.getFile(repo, state.branch, path).catch(() => null);
+      const base = draft ? null : await client.getFile(repo, state.baseBranch, path);
       const source = draft ?? base;
       if (!source) throw new Error(`File not found: ${path}`);
       state.fileSha = draft?.sha; // only same-branch shas are valid for updates
@@ -70,8 +76,6 @@ onMounted(async () => {
     state.loading = false;
   }
 });
-
-// --- Autosave -------------------------------------------------------------
 
 let timer: number | undefined;
 watch(
@@ -88,14 +92,17 @@ onBeforeUnmount(() => window.clearTimeout(timer));
 
 async function saveNow(): Promise<void> {
   if (state.loading || state.loadError || state.save === "saving") return;
+  const repo = target.value;
+  if (!repo) return;
   state.save = "saving";
   state.error = "";
   try {
     const client = githubClient();
-    await client.createBranch(repoCoord, repoCfg.baseBranch, state.branch); // no-op once it exists
+    state.baseBranch = state.baseBranch || (await ensureDefaultBranch(client));
+    await client.createBranch(repo, state.baseBranch, state.branch); // no-op once it exists
     const verb = state.fileSha ? "Update" : "Create";
     state.fileSha = await client.putFile(
-      repoCoord,
+      repo,
       state.branch,
       state.repoPath,
       serializePost(state.fm, state.body),
@@ -111,10 +118,13 @@ async function saveNow(): Promise<void> {
 }
 
 async function openPr(): Promise<void> {
+  const repo = target.value;
+  if (!repo) return;
   state.error = "";
   try {
     if (state.save === "dirty" || state.save === "error") await saveNow();
     const client = githubClient();
+    state.baseBranch = state.baseBranch || (await ensureDefaultBranch(client));
     const body = [
       "Draft post created with WriteShare.",
       "",
@@ -124,14 +134,8 @@ async function openPr(): Promise<void> {
       "Review and merge when ready.",
     ].join("\n");
     state.prUrl =
-      (await client.findOpenPrUrl(repoCoord, state.branch)) ??
-      (await client.createPr(
-        repoCoord,
-        repoCfg.baseBranch,
-        state.branch,
-        `post: ${title.value}`,
-        body,
-      ));
+      (await client.findOpenPrUrl(repo, state.branch)) ??
+      (await client.createPr(repo, state.baseBranch, state.branch, `post: ${title.value}`, body));
     window.open(state.prUrl, "_blank", "noopener");
   } catch (err) {
     state.save = "error";
@@ -175,6 +179,7 @@ const statusLabel = computed(() => {
         <span class="status" :class="`status-${state.save}`">
           <span class="dot" aria-hidden="true" />{{ statusLabel }}
         </span>
+        <ThemeToggle />
         <button class="primary pr-btn" :disabled="state.save === 'saving'" @click="void openPr()">
           {{ state.prUrl ? "View PR" : "Open PR" }}
         </button>
@@ -196,10 +201,6 @@ const statusLabel = computed(() => {
 </template>
 
 <style scoped>
-.editor-page {
-  max-width: 1180px;
-}
-
 .editor-title {
   font-size: 1.05rem;
   font-weight: 600;
@@ -247,7 +248,7 @@ const statusLabel = computed(() => {
 
 .editor-grid {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 1.25rem;
   align-items: start;
 }
@@ -255,7 +256,6 @@ const statusLabel = computed(() => {
 .meta-panel {
   background: var(--paper);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
   padding: 1.15rem;
   position: sticky;
   top: 4.5rem;
