@@ -1,0 +1,8 @@
+name = "writeshare-oauth"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# Secrets are set with `wrangler secret put` and never committed:
+#   GITHUB_CLIENT_ID       = from your GitHub OAuth App
+#   GITHUB_CLIENT_SECRET   = from your GitHub OAuth App
+#   ALLOWED_ORIGINS        = e.g. "https://shravangoswami.com,http://localhost:5173"
