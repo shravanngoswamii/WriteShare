@@ -27,11 +27,6 @@ export interface CollectionConfig {
 }
 
 export const CMS_CONFIG = {
-  repo: {
-    owner: "shravanngoswamii",
-    repo: "shravanngoswamii.github.io",
-    baseBranch: "main",
-  },
   auth: {
     /**
      * "oauth" gives one-click GitHub sign-in (needs the free proxy in
@@ -43,10 +38,10 @@ export const CMS_CONFIG = {
       /** Deployed oauth-proxy worker. */
       exchangeUrl: "https://writeshare-oauth.shravangoswami.workers.dev",
       /**
-       * OAuth scope. "public_repo" suffices when the blog repo is public;
-       * use "repo" if it is private.
+       * OAuth scope. "repo" covers public and private repos; "public_repo"
+       * got 404s from the git refs API even on public repos.
        */
-      scope: "public_repo",
+      scope: "repo",
     },
   },
   /** Autosave debounce after the last keystroke, in ms. */
