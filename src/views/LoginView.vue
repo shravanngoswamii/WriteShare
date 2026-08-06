@@ -63,7 +63,7 @@ async function usePat(): Promise<void> {
 }
 
 function useOAuth(): void {
-  beginOAuth(oauth, "/");
+  beginOAuth(oauth);
 }
 </script>
 

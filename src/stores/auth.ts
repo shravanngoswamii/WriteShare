@@ -40,10 +40,12 @@ export interface OAuthConfig {
 }
 
 /** Kick off GitHub's web OAuth flow. */
-export function beginOAuth(cfg: OAuthConfig, callbackPath: string): void {
+export function beginOAuth(cfg: OAuthConfig): void {
   const state = crypto.randomUUID();
   localStorage.setItem(OAUTH_STATE_KEY, state);
-  const redirectUri = new URL(callbackPath, window.location.origin).toString();
+  // The app deploys under a base path (e.g. /WriteShare/), and the callback
+  // URL registered on GitHub must land right back here.
+  const redirectUri = `${window.location.origin}${import.meta.env.BASE_URL}`;
   const params = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: redirectUri,
