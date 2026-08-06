@@ -65,7 +65,7 @@ export async function completeOAuth(cfg: OAuthConfig): Promise<boolean> {
   const state = url.searchParams.get("state");
   if (!code) return false;
   if (state !== localStorage.getItem(OAUTH_STATE_KEY)) {
-    throw new Error("OAuth state mismatch — please try signing in again.");
+    throw new Error("OAuth state mismatch, please try signing in again.");
   }
   localStorage.removeItem(OAUTH_STATE_KEY);
   const res = await fetch(cfg.exchangeUrl, {

@@ -54,7 +54,7 @@ export class GitHubClient {
     });
     if (res.status === 204) return undefined as T;
     if (res.status === 401) {
-      // Token expired or revoked → let the app bounce back to sign-in.
+      // Token expired or revoked -> let the app bounce back to sign-in.
       window.dispatchEvent(new CustomEvent("writeshare:unauthorized"));
     }
     const data: unknown = await res.json().catch(() => ({}));
@@ -94,7 +94,7 @@ export class GitHubClient {
       .sort();
   }
 
-  /** Contents API GET — resolves to null when the file does not exist. */
+  /** Contents API GET. Resolves to null when the file does not exist. */
   async getFile(repo: RepoCoordinate, branch: string, path: string): Promise<FilePayload | null> {
     try {
       const res = await this.req<{
