@@ -39,9 +39,9 @@ export const CMS_CONFIG = {
      */
     method: "oauth" as "pat" | "oauth",
     oauth: {
-      clientId: "", // public; safe to commit
-      /** URL of your deployed oauth-proxy worker, e.g. https://writeshare-oauth.<you>.workers.dev */
-      exchangeUrl: "",
+      clientId: "Ov23liHJ8nV7rutFvapF", // public; safe to commit
+      /** Deployed oauth-proxy worker. */
+      exchangeUrl: "https://writeshare-oauth.shravangoswami.workers.dev",
       /**
        * OAuth scope. "public_repo" suffices when the blog repo is public;
        * use "repo" if it is private.
