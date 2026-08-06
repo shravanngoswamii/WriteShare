@@ -3,9 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Serverless Markdown writing desk for GitHub-backed blogs. Writes to your repo through draft branches and PRs — no server, no database.",
+  "description": "Serverless Markdown writing desk for GitHub-backed blogs. Writes to your repo through draft branches and PRs, no server, no database.",
   "author": "Shravan Goswami",
   "license": "MIT",
+  "homepage": "https://shravangoswami.com/WriteShare/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shravanngoswamii/WriteShare.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
