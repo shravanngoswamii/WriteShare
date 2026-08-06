@@ -3,6 +3,7 @@ import { auth } from "./stores/auth";
 import EditorView from "./views/EditorView.vue";
 import LoginView from "./views/LoginView.vue";
 import PostsView from "./views/PostsView.vue";
+import ReposView from "./views/ReposView.vue";
 
 export const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -10,6 +11,7 @@ export const router = createRouter({
     { path: "/", redirect: "/posts" },
     { path: "/login", component: LoginView },
     { path: "/posts", component: PostsView },
+    { path: "/repos", component: ReposView },
     { path: "/edit", component: EditorView },
   ],
 });

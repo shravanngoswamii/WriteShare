@@ -72,6 +72,15 @@ export class GitHubClient {
     return this.req<GitHubUser>("GET", "/user");
   }
 
+  repoInfo(repo: RepoCoordinate): Promise<{ default_branch: string }> {
+    return this.req<{ default_branch: string }>("GET", `/repos/${repo.owner}/${repo.repo}`);
+  }
+
+  /** Public + private repos owned by the authenticated user, recently active first. */
+  listUserRepos(): Promise<Array<{ full_name: string; private: boolean; default_branch: string }>> {
+    return this.req("GET", "/user/repos?affiliation=owner&sort=updated&per_page=100");
+  }
+
   private async branchHeadSha(repo: RepoCoordinate, branch: string): Promise<string> {
     const ref = await this.req<{ object: { sha: string } }>(
       "GET",
