@@ -1,0 +1,256 @@
+/*
+ * WriteShare design system: clean, borderless, Apple/Google-style.
+ * Rules: no visible borders on chrome; separation comes from tonal fills and
+ * whitespace. Hairline separators are allowed only inside grouped lists.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --canvas: #f5f5f7; /* apple.com light gray */
+  --paper: #ffffff;
+  --fill: rgba(120, 120, 128, 0.12); /* iOS system fill */
+  --fill-strong: rgba(120, 120, 128, 0.18);
+  --separator: rgba(60, 60, 67, 0.09);
+
+  --ink: #1d1d1f;
+  --ink-muted: #6e6e73;
+
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-ink: #ffffff;
+
+  --ok: #2da44e;
+  --danger: #d70015;
+  --danger-bg: rgba(255, 59, 48, 0.1);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #000000;
+    --paper: #1c1c1e;
+    --fill: rgba(120, 120, 128, 0.18);
+    --fill-strong: rgba(120, 120, 128, 0.26);
+    --separator: rgba(84, 84, 88, 0.45);
+
+    --ink: #f5f5f7;
+    --ink-muted: #98989d;
+
+    --accent: #0a84ff;
+    --accent-hover: #2f96ff;
+    --accent-ink: #ffffff;
+
+    --ok: #32d74b;
+    --danger: #ff6961;
+    --danger-bg: rgba(255, 69, 58, 0.14);
+
+    --shadow-card: none;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* --- Controls (buttons & inputs): borderless, fill-based, pill buttons --- */
+
+button {
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: var(--fill);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.5rem 1.1rem;
+  transition:
+    background-color 0.15s ease,
+    transform 0.05s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:hover:not(:disabled) {
+  background: var(--fill-strong);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--fill);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.9rem;
+  width: 100%;
+  transition: box-shadow 0.15s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-muted);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  background: var(--paper);
+}
+
+summary {
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* --- Layout & shared pieces --- */
+
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 5rem;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: -1rem -1.25rem 1.5rem;
+  padding: 0.7rem 1.25rem;
+  background: color-mix(in srgb, var(--canvas) 78%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.large-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--ink-muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.banner {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.1rem;
+  margin: 1rem 0;
+  font-size: 0.92rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field > label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem 0.15rem;
+  color: var(--ink-muted);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-row input {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: var(--fill);
+  color: var(--ink-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+a.chip:hover {
+  background: var(--fill-strong);
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: -0.12em;
+}
