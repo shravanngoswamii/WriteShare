@@ -1,56 +1,55 @@
 /*
- * WriteShare design system: clean, borderless, Apple/Google-style.
- * Rules: no visible borders on chrome; separation comes from tonal fills and
- * whitespace. Hairline separators are allowed only inside grouped lists.
+ * WriteShare design system: clean, borderless, matte.
+ * Rules: no visible borders on chrome, no glass or gloss. Separation comes
+ * from tonal fills and whitespace. Hairline separators only inside grouped
+ * lists. Theme is driven by data-theme on <html> (see stores/theme.ts).
  */
 
-:root {
-  color-scheme: light dark;
+:root,
+[data-theme="light"] {
+  color-scheme: light;
 
-  --canvas: #f5f5f7; /* apple.com light gray */
+  --canvas: #f4f4f6;
   --paper: #ffffff;
-  --fill: rgba(120, 120, 128, 0.12); /* iOS system fill */
-  --fill-strong: rgba(120, 120, 128, 0.18);
-  --separator: rgba(60, 60, 67, 0.09);
+  --fill: rgba(0, 0, 0, 0.045);
+  --fill-strong: rgba(0, 0, 0, 0.08);
+  --separator: rgba(0, 0, 0, 0.07);
 
-  --ink: #1d1d1f;
-  --ink-muted: #6e6e73;
+  --ink: #1c1c1f;
+  --ink-muted: #71717a;
 
   --accent: #0071e3;
-  --accent-hover: #0077ed;
+  --accent-hover: #0062c4;
   --accent-ink: #ffffff;
 
   --ok: #2da44e;
   --danger: #d70015;
-  --danger-bg: rgba(255, 59, 48, 0.1);
+  --danger-bg: rgba(255, 59, 48, 0.08);
 
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.06);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #000000;
-    --paper: #1c1c1e;
-    --fill: rgba(120, 120, 128, 0.18);
-    --fill-strong: rgba(120, 120, 128, 0.26);
-    --separator: rgba(84, 84, 88, 0.45);
+[data-theme="dark"] {
+  color-scheme: dark;
 
-    --ink: #f5f5f7;
-    --ink-muted: #98989d;
+  --canvas: #131316; /* matte charcoal, no pure black */
+  --paper: #1d1d21;
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.1);
+  --separator: rgba(255, 255, 255, 0.08);
 
-    --accent: #0a84ff;
-    --accent-hover: #2f96ff;
-    --accent-ink: #ffffff;
+  --ink: #f2f2f5;
+  --ink-muted: #9d9da6;
 
-    --ok: #32d74b;
-    --danger: #ff6961;
-    --danger-bg: rgba(255, 69, 58, 0.14);
+  --accent: #0a84ff;
+  --accent-hover: #2f96ff;
+  --accent-ink: #ffffff;
 
-    --shadow-card: none;
-  }
+  --ok: #32d74b;
+  --danger: #ff6961;
+  --danger-bg: rgba(255, 69, 58, 0.12);
 }
 
 * {
@@ -163,9 +162,10 @@ summary {
 /* --- Layout & shared pieces --- */
 
 .page {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 1rem 1.25rem 5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 1rem 1.5rem 4rem;
 }
 
 .topbar {
@@ -175,11 +175,9 @@ summary {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  margin: -1rem -1.25rem 1.5rem;
-  padding: 0.7rem 1.25rem;
-  background: color-mix(in srgb, var(--canvas) 78%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
+  margin: -1rem -1.5rem 1.5rem;
+  padding: 0.7rem 1.5rem;
+  background: var(--canvas);
 }
 
 .large-title {
