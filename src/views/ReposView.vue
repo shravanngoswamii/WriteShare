@@ -11,6 +11,7 @@ import {
   repos,
   setActive,
 } from "@/stores/repos";
+import { settings } from "@/stores/settings";
 
 const router = useRouter();
 const addForm = reactive({ slug: "", contentPath: "src/content/blog", error: "" });
@@ -135,6 +136,15 @@ function manage(index: number): void {
       <div class="composer-actions">
         <button class="primary" :disabled="!addForm.slug.trim()" @click="add">Add and write</button>
       </div>
+    </div>
+
+    <h2 class="section-title">App settings</h2>
+    <div class="composer">
+      <label class="checkbox-row settings-row">
+        <input v-model="settings.autoSaveToGitHub" type="checkbox" />
+        <span>Auto-save to GitHub</span>
+        <span class="muted small">When off, edits stay in the browser until you Push manually.</span>
+      </label>
     </div>
 
     <h2 class="section-title">Your repositories</h2>
@@ -266,5 +276,9 @@ function manage(index: number): void {
 .composer-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.settings-row {
+  gap: 0.6rem;
 }
 </style>
