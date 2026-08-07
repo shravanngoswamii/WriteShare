@@ -209,6 +209,11 @@ summary {
   font-size: 0.92rem;
 }
 
+.banner.info {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  color: var(--ink);
+}
+
 .field {
   margin-bottom: 1rem;
 }
