@@ -7,13 +7,44 @@
 > [!WARNING]
 > Personal experiment built for my own usage, written with Kimi K3 in OpenCode. The code is not personally reviewed and comes with zero guarantees of correctness, security, or stability. Use at your own risk.
 
-A serverless, Markdown-native writing desk for GitHub-backed blogs. WYSIWYG editing in the browser, every autosave is a commit on a `draft/*` branch, publishing is a pull request. Works with any repository you can access; no server, no database.
+A serverless, Markdown-native writing desk for GitHub-backed blogs (Astro, Next, 11ty, Quarto, anything with Markdown files and frontmatter in a repo). WYSIWYG editing in the browser, edits live in local drafts until you *Push* them as a commit on a `draft/*` branch, publishing is a pull request. Works with any repository you can access; no server, no database.
 
 ## Usage
 
 1. Sign in with GitHub (or paste a token).
 2. Repositories screen: add any repo as `owner/repo` and point it at a content path (default `src/content/blog`); its default branch is detected automatically.
-3. Posts screen: pick a post or compose a new one. Autosave commits to `draft/<slug>`; "Open PR" publishes the review.
+3. Posts screen: folder tree on the left, files on the right, dot marks unsaved local drafts. Compose or open one.
+4. Editor: metadata in a collapsible top bar with permalink preview, body is WYSIWYG. Every edit is saved to the browser immediately. **Push** opens a dialog with an editable commit message (template-driven) and commits to `draft/<slug>`; **Open PR** publishes the review.
+5. Repo > Manage: settings (content path, preview URL template, commit template), draft branch cleanup, and pull request merge (squash default, delete-branch-after-merge) or close.
+
+Autosaving straight to GitHub (skipping the Push step) is available in settings under `writeshare.settings` via the editor, off by default.
+
+## Configure a repo with writeshare.yml
+
+Place at the repo root; fetched automatically, in-app Settings screen overrides it per browser.
+
+```yaml
+collections:
+  - name: posts
+    path: src/content/blog
+    extension: .md
+    fields:
+      - { name: title, type: string, required: true }
+      - { name: description, type: text }
+      - { name: pubDatetime, type: date, required: true }
+      - { name: draft, type: boolean, default: true }
+      - { name: tags, type: string[] }
+      - { name: categories, type: enum[], options: [tech, notes] }
+    template:
+      title: ""
+      draft: true
+preview:
+  urlTemplate: "https://yoursite.com/blog/{slug}/"
+commit:
+  template: "{action} {path} (via WriteShare)"
+```
+
+Field types: `string`, `text`, `date`, `boolean`, `string[]`, `enum[]`. Commit template tokens: `{action}`, `{path}`, `{title}`.
 
 ## Permissions and sign-out
 
