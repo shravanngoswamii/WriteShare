@@ -1,5 +1,12 @@
 import { reactive, watch } from "vue";
+import type { CollectionField } from "@/config";
 import type { GitHubClient } from "@/lib/github";
+import {
+  defaultRepoConfig,
+  fetchRepoConfig,
+  mergeRepoConfig,
+  type RepoConfig,
+} from "@/lib/repoconfig";
 
 export interface RepoTarget {
   owner: string;
@@ -7,6 +14,15 @@ export interface RepoTarget {
   /** Directory inside the repo holding markdown entries. */
   contentPath: string;
   defaultBranch?: string;
+  /** App overrides and writeshare.yml cache (undefined = inherit defaults). */
+  extension?: ".md" | ".mdx";
+  fields?: CollectionField[];
+  fmTemplate?: Record<string, unknown>;
+  urlTemplate?: string;
+  commitTemplate?: string;
+  /** Last time writeshare.yml was fetched; manual edits mark the target as app-configured. */
+  configCheckedAt?: number;
+  configSource?: "file" | "app";
 }
 
 const REPOS_KEY = "writeshare.repos";
@@ -82,4 +98,31 @@ export async function ensureDefaultBranch(client: GitHubClient): Promise<string>
     target.defaultBranch = (await client.repoInfo(target)).default_branch;
   }
   return target.defaultBranch;
+}
+
+/** Effective config for a target: defaults, then writeshare.yml cache/overrides. */
+export function resolveConfig(target: RepoTarget): RepoConfig {
+  const base = defaultRepoConfig();
+  return mergeRepoConfig({
+    contentPath: target.contentPath || base.contentPath,
+    extension: target.extension,
+    fields: target.fields,
+    template: target.fmTemplate,
+    urlTemplate: target.urlTemplate || undefined,
+    commitTemplate: target.commitTemplate,
+  });
+}
+
+/** Fetch writeshare.yml from the repo and cache it on the target. */
+export async function refreshRepoConfig(client: GitHubClient, target: RepoTarget): Promise<void> {
+  const branch = target.defaultBranch ?? (await ensureDefaultBranch(client));
+  const cfg = await fetchRepoConfig(client, target, branch);
+  target.contentPath = cfg.contentPath;
+  target.extension = cfg.extension;
+  target.fields = cfg.fields;
+  target.fmTemplate = cfg.template;
+  target.urlTemplate = cfg.urlTemplate;
+  target.commitTemplate = cfg.commitTemplate;
+  target.configCheckedAt = Date.now();
+  target.configSource = "file";
 }
