@@ -6,22 +6,27 @@ const TOKEN_KEY = "writeshare.github-token";
 interface AuthState {
   token: string;
   user: GitHubUser | null;
+  /** OAuth scopes of the current token ("" for PATs or until validated). */
+  scopes: string;
 }
 
 export const auth = reactive<AuthState>({
   token: localStorage.getItem(TOKEN_KEY) ?? "",
   user: null,
+  scopes: "",
 });
 
 export function setToken(token: string): void {
   auth.token = token;
   localStorage.setItem(TOKEN_KEY, token);
   auth.user = null;
+  auth.scopes = "";
 }
 
 export function logout(): void {
   auth.token = "";
   auth.user = null;
+  auth.scopes = "";
   localStorage.removeItem(TOKEN_KEY);
 }
 

@@ -43,7 +43,9 @@ onMounted(async () => {
 });
 
 async function enter(): Promise<void> {
-  auth.user = await githubClient().user();
+  const { user, scopes } = await githubClient().userWithScopes();
+  auth.user = user;
+  auth.scopes = scopes;
   void router.replace("/posts");
 }
 

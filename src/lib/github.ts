@@ -72,6 +72,22 @@ export class GitHubClient {
     return this.req<GitHubUser>("GET", "/user");
   }
 
+  /** /user plus the token's granted scopes (OAuth tokens only; PATs send none). */
+  async userWithScopes(): Promise<{ user: GitHubUser; scopes: string }> {
+    const res = await fetch(`${API}/user`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${this.token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    if (!res.ok) throw new GitHubError(res.status, res.statusText);
+    return {
+      user: (await res.json()) as GitHubUser,
+      scopes: res.headers.get("x-oauth-scopes") ?? "",
+    };
+  }
+
   repoInfo(repo: RepoCoordinate): Promise<{ default_branch: string }> {
     return this.req<{ default_branch: string }>("GET", `/repos/${repo.owner}/${repo.repo}`);
   }

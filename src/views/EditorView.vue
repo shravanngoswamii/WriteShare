@@ -162,7 +162,10 @@ const statusLabel = computed(() => {
 <template>
   <div class="page editor-page">
     <p v-if="state.loading" class="muted">Loading...</p>
-    <div v-else-if="state.loadError" class="banner">{{ state.loadError }}. <a href="#/posts">back to posts</a></div>
+    <div v-else-if="state.loadError" class="banner">
+      {{ state.loadError }}. On a private repo, sign out and sign in again so your token gets the repo scope.
+      <a href="#/posts">back to posts</a>
+    </div>
 
     <template v-else>
       <div class="topbar">

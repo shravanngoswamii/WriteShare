@@ -45,6 +45,20 @@ const folders = computed(() =>
   [...new Set(entries.value.map((e) => e.folder))].filter(Boolean).sort(),
 );
 
+/** 404 usually means a private repo hidden from an under-scoped token. */
+const scopeHint = computed(() => {
+  if (postsState.errorStatus !== 404) return "";
+  if (
+    !auth.scopes ||
+    auth.scopes
+      .split(",")
+      .map((s) => s.trim())
+      .includes("repo")
+  )
+    return "";
+  return "This repo may be private and your token only has public_repo. Sign out and sign in again to grant the repo scope.";
+});
+
 function openEntry(path: string): void {
   void router.push({ path: "/edit", query: { path } });
 }
@@ -109,7 +123,10 @@ function signOut(): void {
       </div>
     </div>
 
-    <div v-if="postsState.error" class="banner">{{ postsState.error }}</div>
+    <div v-if="postsState.error" class="banner">
+      {{ postsState.error }}
+      <p v-if="scopeHint" class="hint">{{ scopeHint }}</p>
+    </div>
     <p v-else-if="postsState.loading" class="muted list-note">Loading...</p>
     <p v-else class="muted list-note small">
       {{ entries.length }} files in {{ target?.contentPath }} of {{ target?.owner }}/{{ target?.repo }}
@@ -193,6 +210,11 @@ function signOut(): void {
 
 .list-note {
   margin: 0.25rem 0.15rem 0.75rem;
+}
+
+.hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
 }
 
 .grouped {
