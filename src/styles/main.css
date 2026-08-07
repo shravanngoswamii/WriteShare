@@ -34,22 +34,22 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --canvas: #131316; /* matte charcoal, no pure black */
-  --paper: #1d1d21;
-  --fill: rgba(255, 255, 255, 0.06);
-  --fill-strong: rgba(255, 255, 255, 0.1);
+  --canvas: #101d2b; /* matte navy, flat like paper stock */
+  --paper: #17293c;
+  --fill: rgba(255, 255, 255, 0.055);
+  --fill-strong: rgba(255, 255, 255, 0.095);
   --separator: rgba(255, 255, 255, 0.08);
 
-  --ink: #f2f2f5;
-  --ink-muted: #9d9da6;
+  --ink: #e9eff6;
+  --ink-muted: #93a7bc;
 
-  --accent: #0a84ff;
-  --accent-hover: #2f96ff;
+  --accent: #2f96ff;
+  --accent-hover: #4aa3ff;
   --accent-ink: #ffffff;
 
-  --ok: #32d74b;
-  --danger: #ff6961;
-  --danger-bg: rgba(255, 69, 58, 0.12);
+  --ok: #3fce5a;
+  --danger: #ff7168;
+  --danger-bg: rgba(255, 69, 58, 0.14);
 }
 
 * {
