@@ -2,19 +2,23 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import ThemeToggle from "@/components/ThemeToggle.vue";
+import TreeRail from "@/components/TreeRail.vue";
 import { auth, githubClient, logout } from "@/stores/auth";
+import { listLocalDrafts } from "@/stores/drafts";
 import { postsState, refreshPosts } from "@/stores/posts";
-import { activeRepo } from "@/stores/repos";
+import { activeRepo, refreshRepoConfig } from "@/stores/repos";
 
 const router = useRouter();
 const filter = ref("");
 const newPost = reactive({ title: "", folder: "" });
 const composing = ref(false);
+const selectedFolder = ref("");
 
 const target = computed(() => activeRepo());
 
 onMounted(async () => {
-  if (!target.value) {
+  const repo = target.value;
+  if (!repo) {
     void router.push("/repos");
     return;
   }
@@ -26,7 +30,12 @@ onMounted(async () => {
     }
   }
   await refreshPosts();
+  if (!repo.configCheckedAt) {
+    void refreshRepoConfig(githubClient(), repo).catch(() => {});
+  }
 });
+
+const drafts = computed(() => new Set(listLocalDrafts().map((d) => d.repoPath)));
 
 const entries = computed(() => {
   const contentPath = target.value?.contentPath ?? "";
@@ -38,7 +47,11 @@ const entries = computed(() => {
       const file = parts.pop() ?? rel;
       return { path, name: file.replace(/\.mdx?$/i, ""), folder: parts.join("/") };
     })
-    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.folder.toLowerCase().includes(q));
+    .filter((e) => {
+      const rel = (e.folder ? `${e.folder}/` : "") + e.name;
+      if (selectedFolder.value && !rel.startsWith(`${selectedFolder.value}/`)) return false;
+      return !q || e.name.toLowerCase().includes(q) || e.folder.toLowerCase().includes(q);
+    });
 });
 
 const folders = computed(() =>
@@ -67,7 +80,11 @@ function createNew(): void {
   if (!newPost.title.trim()) return;
   void router.push({
     path: "/edit",
-    query: { new: "1", title: newPost.title.trim(), folder: newPost.folder.trim() },
+    query: {
+      new: "1",
+      title: newPost.title.trim(),
+      folder: newPost.folder.trim() || selectedFolder.value,
+    },
   });
 }
 
@@ -81,7 +98,7 @@ function signOut(): void {
   <div class="page">
     <div class="topbar">
       <h1 class="large-title">Posts</h1>
-      <button class="repo-chip" title="Switch repository" @click="void router.push('/repos')">
+      <button class="repo-chip" title="Repositories" @click="void router.push('/repos')">
         {{ target ? `${target.owner}/${target.repo}` : "No repository" }}
       </button>
       <ThemeToggle />
@@ -96,63 +113,77 @@ function signOut(): void {
       <button class="quiet" @click="signOut">Sign out</button>
     </div>
 
-    <div class="search-row">
-      <svg class="icon search-icon" viewBox="0 0 16 16" aria-hidden="true">
-        <path
-          d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.867-3.834zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"
-        />
-      </svg>
-      <input v-model="filter" class="search" type="search" placeholder="Search" />
-    </div>
-
-    <div v-if="composing" class="composer">
-      <input v-model="newPost.title" type="text" placeholder="Post title" autofocus @keydown.enter="createNew" />
-      <input
-        v-model="newPost.folder"
-        type="text"
-        placeholder="Folder (optional)"
-        list="folders"
-        @keydown.enter="createNew"
+    <div class="explorer">
+      <TreeRail
+        v-if="target"
+        :files="postsState.files"
+        :root="target.contentPath"
+        :selected="selectedFolder"
+        @select="selectedFolder = $event"
       />
-      <datalist id="folders">
-        <option v-for="f in folders" :key="f" :value="f" />
-      </datalist>
-      <div class="composer-actions">
-        <button class="quiet" @click="composing = false">Cancel</button>
-        <button class="primary" :disabled="!newPost.title.trim()" @click="createNew">Start writing</button>
+
+      <div class="listing">
+        <div class="search-row">
+          <svg class="icon search-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.867-3.834zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"
+            />
+          </svg>
+          <input v-model="filter" class="search" type="search" placeholder="Search" />
+          <button class="primary new-btn" @click="composing = !composing">New post</button>
+        </div>
+
+        <div v-if="composing" class="composer">
+          <input
+            v-model="newPost.title"
+            type="text"
+            placeholder="Post title"
+            autofocus
+            @keydown.enter="createNew"
+          />
+          <input
+            v-model="newPost.folder"
+            type="text"
+            :placeholder="selectedFolder || 'Folder (optional)'"
+            list="folders"
+            @keydown.enter="createNew"
+          />
+          <datalist id="folders">
+            <option v-for="f in folders" :key="f" :value="f" />
+          </datalist>
+          <div class="composer-actions">
+            <button class="quiet" @click="composing = false">Cancel</button>
+            <button class="primary" :disabled="!newPost.title.trim()" @click="createNew">Start writing</button>
+          </div>
+        </div>
+
+        <div v-if="postsState.error" class="banner">
+          {{ postsState.error }}
+          <p v-if="scopeHint" class="hint">{{ scopeHint }}</p>
+        </div>
+        <p v-else-if="postsState.loading" class="muted list-note">Loading...</p>
+        <p v-else class="muted list-note small">
+          {{ entries.length }} files in
+          {{ selectedFolder ? `${target?.contentPath}/${selectedFolder}` : target?.contentPath }}
+        </p>
+
+        <div class="grouped">
+          <button v-for="e in entries" :key="e.path" class="row" @click="openEntry(e.path)">
+            <span v-if="drafts.has(e.path)" class="draft-dot" title="Unsaved local draft" aria-label="unsaved local draft" />
+            <span class="row-text">
+              <span class="row-name">{{ e.name }}</span>
+              <span v-if="e.folder" class="row-sub">{{ e.folder }}</span>
+            </span>
+            <svg class="icon chevron" viewBox="0 0 16 16" aria-hidden="true">
+              <path
+                d="M5.646 3.646a.5.5 0 0 1 .708 0l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L10.293 8 5.646 4.354a.5.5 0 0 1 0-.708z"
+              />
+            </svg>
+          </button>
+          <p v-if="!entries.length && !postsState.loading" class="muted empty">Nothing here.</p>
+        </div>
       </div>
     </div>
-
-    <div v-if="postsState.error" class="banner">
-      {{ postsState.error }}
-      <p v-if="scopeHint" class="hint">{{ scopeHint }}</p>
-    </div>
-    <p v-else-if="postsState.loading" class="muted list-note">Loading...</p>
-    <p v-else class="muted list-note small">
-      {{ entries.length }} files in {{ target?.contentPath }} of {{ target?.owner }}/{{ target?.repo }}
-    </p>
-
-    <div class="grouped">
-      <button v-for="e in entries" :key="e.path" class="row" @click="openEntry(e.path)">
-        <span class="row-text">
-          <span class="row-name">{{ e.name }}</span>
-          <span v-if="e.folder" class="row-sub">{{ e.folder }}</span>
-        </span>
-        <svg class="icon chevron" viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            d="M5.646 3.646a.5.5 0 0 1 .708 0l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L10.293 8 5.646 4.354a.5.5 0 0 1 0-.708z"
-          />
-        </svg>
-      </button>
-    </div>
-
-    <button class="fab primary" title="New post" @click="composing = !composing">
-      <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-        <path
-          d="M8 1.5a.75.75 0 0 1 .75.75v5h5a.75.75 0 0 1 0 1.5h-5v5a.75.75 0 0 1-1.5 0v-5h-5a.75.75 0 0 1 0-1.5h5v-5A.75.75 0 0 1 8 1.5z"
-        />
-      </svg>
-    </button>
   </div>
 </template>
 
@@ -174,16 +205,28 @@ function signOut(): void {
   padding: 0.35rem 0.8rem;
 }
 
+.explorer {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.listing {
+  min-width: 0;
+}
+
 .search-row {
   position: relative;
   margin-bottom: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .search-icon {
   position: absolute;
   left: 0.9rem;
-  top: 50%;
-  transform: translateY(-50%);
   color: var(--ink-muted);
   pointer-events: none;
 }
@@ -191,6 +234,10 @@ function signOut(): void {
 .search {
   padding-left: 2.4rem;
   border-radius: 999px;
+}
+
+.new-btn {
+  flex-shrink: 0;
 }
 
 .composer {
@@ -247,6 +294,14 @@ function signOut(): void {
   transform: none;
 }
 
+.draft-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
 .row-text {
   flex: 1;
   min-width: 0;
@@ -273,15 +328,14 @@ function signOut(): void {
   flex-shrink: 0;
 }
 
-.fab {
-  position: fixed;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 1.2rem;
+.empty {
+  padding: 1rem 1.15rem;
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  .explorer {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

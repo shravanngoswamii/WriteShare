@@ -3,7 +3,14 @@ import { computed, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import { githubClient } from "@/stores/auth";
-import { activeRepo, addRepo, removeRepo, repos, setActive } from "@/stores/repos";
+import {
+  activeRepo,
+  addRepo,
+  refreshRepoConfig,
+  removeRepo,
+  repos,
+  setActive,
+} from "@/stores/repos";
 
 const router = useRouter();
 const addForm = reactive({ slug: "", contentPath: "src/content/blog", error: "" });
@@ -53,18 +60,29 @@ function add(): void {
   }
   addRepo({ ...slug, contentPath: addForm.contentPath.trim() || "src/content/blog" });
   addForm.slug = "";
+  const t = active.value;
+  if (t) void refreshRepoConfig(githubClient(), t).catch(() => {});
   void router.push("/posts");
 }
 
 function quickAdd(fullName: string): void {
   const slug = parseSlug(fullName);
   if (slug) addRepo({ ...slug, contentPath: "src/content/blog" });
+  const t = active.value;
+  if (t) void refreshRepoConfig(githubClient(), t).catch(() => {});
   void router.push("/posts");
 }
 
 function activate(index: number): void {
   setActive(index);
+  const t = repos.list[index];
+  if (t && !t.configCheckedAt) void refreshRepoConfig(githubClient(), t).catch(() => {});
   void router.push("/posts");
+}
+
+function manage(index: number): void {
+  setActive(index);
+  void router.push("/repo");
 }
 </script>
 
@@ -80,10 +98,13 @@ function activate(index: number): void {
         <button class="row" @click="activate(i)">
           <span class="row-text">
             <span class="row-name">{{ r.owner }}/{{ r.repo }}</span>
-            <span class="row-sub">{{ r.contentPath }}<template v-if="r.defaultBranch"> · {{ r.defaultBranch }}</template></span>
+            <span class="row-sub">
+              {{ r.contentPath }}<template v-if="r.defaultBranch"> · {{ r.defaultBranch }}</template>
+            </span>
           </span>
           <span v-if="active === r" class="active-dot" aria-label="active" />
         </button>
+        <button class="manage-btn" title="Settings, branches and pull requests" @click="manage(i)">Manage</button>
         <button class="remove-btn" title="Remove" @click="removeRepo(i)">
           <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
             <path
@@ -216,7 +237,8 @@ function activate(index: number): void {
   color: var(--ink-muted);
 }
 
-.remove-btn {
+.remove-btn,
+.manage-btn {
   border-radius: 0;
   background: transparent;
   color: var(--ink-muted);
@@ -226,6 +248,11 @@ function activate(index: number): void {
 .remove-btn:hover:not(:disabled) {
   background: transparent;
   color: var(--danger);
+}
+
+.manage-btn:hover:not(:disabled) {
+  background: var(--fill-strong);
+  color: var(--ink);
 }
 
 .composer {
