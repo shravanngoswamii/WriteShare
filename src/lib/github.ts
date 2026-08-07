@@ -146,6 +146,24 @@ export class GitHubClient {
     message: string,
     sha?: string,
   ): Promise<string> {
+    try {
+      return await this.putOnce(repo, branch, path, content, message, sha);
+    } catch (err) {
+      // Stale or wrong sha (concurrent commit or branch desync): refetch and retry once.
+      if (!(err instanceof GitHubError) || (err.status !== 409 && err.status !== 422)) throw err;
+      const fresh = await this.getFile(repo, branch, path);
+      return this.putOnce(repo, branch, path, content, message, fresh?.sha);
+    }
+  }
+
+  private async putOnce(
+    repo: RepoCoordinate,
+    branch: string,
+    path: string,
+    content: string,
+    message: string,
+    sha?: string,
+  ): Promise<string> {
     const res = await this.req<{ content: { sha: string } }>(
       "PUT",
       `/repos/${repo.owner}/${repo.repo}/contents/${encodePath(path)}`,
@@ -159,18 +177,67 @@ export class GitHubClient {
     return res.content.sha;
   }
 
+  refExists(repo: RepoCoordinate, branch: string): Promise<boolean> {
+    return this.branchHeadSha(repo, branch)
+      .then(() => true)
+      .catch((err) => {
+        if (err instanceof GitHubError && err.status === 404) return false;
+        throw err;
+      });
+  }
+
   /** Create `refs/heads/<branch>` from the repo's base branch head. No-op if it exists. */
   async createBranch(repo: RepoCoordinate, fromBranch: string, newBranch: string): Promise<void> {
+    if (await this.refExists(repo, newBranch)) return;
     const sha = await this.branchHeadSha(repo, fromBranch);
-    try {
-      await this.req("POST", `/repos/${repo.owner}/${repo.repo}/git/refs`, {
-        ref: `refs/heads/${newBranch}`,
-        sha,
-      });
-    } catch (err) {
-      if (err instanceof GitHubError && err.status === 422) return; // branch already exists
-      throw err;
-    }
+    await this.req("POST", `/repos/${repo.owner}/${repo.repo}/git/refs`, {
+      ref: `refs/heads/${newBranch}`,
+      sha,
+    });
+  }
+
+  /** Branch names under a prefix, e.g. "draft/". */
+  async listBranches(repo: RepoCoordinate, prefix: string): Promise<string[]> {
+    const refs = await this.req<Array<{ ref: string }>>(
+      "GET",
+      `/repos/${repo.owner}/${repo.repo}/git/matching-refs/heads/${encodeURIComponent(prefix)}`,
+    );
+    return refs.map((r) => r.ref.replace("refs/heads/", ""));
+  }
+
+  async deleteBranch(repo: RepoCoordinate, branch: string): Promise<void> {
+    await this.req(
+      "DELETE",
+      `/repos/${repo.owner}/${repo.repo}/git/refs/heads/${encodeURIComponent(branch)}`,
+    );
+  }
+
+  listOpenPrs(repo: RepoCoordinate): Promise<
+    Array<{
+      number: number;
+      title: string;
+      head: { ref: string };
+      html_url: string;
+      updated_at: string;
+    }>
+  > {
+    return this.req("GET", `/repos/${repo.owner}/${repo.repo}/pulls?state=open&per_page=100`);
+  }
+
+  async closePr(repo: RepoCoordinate, number: number): Promise<void> {
+    await this.req("PATCH", `/repos/${repo.owner}/${repo.repo}/pulls/${number}`, {
+      state: "closed",
+    });
+  }
+
+  async mergePr(
+    repo: RepoCoordinate,
+    number: number,
+    method: "squash" | "merge" | "rebase",
+  ): Promise<void> {
+    await this.req("PUT", `/repos/${repo.owner}/${repo.repo}/pulls/${number}/merge`, {
+      merge_method: method,
+    });
   }
 
   /** Repo HTML URL of the open PR for `branch`, if any. */
