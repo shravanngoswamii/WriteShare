@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { editorViewCtx, parserCtx } from "@milkdown/core";
 import { Crepe } from "@milkdown/crepe";
+import { Slice } from "prosemirror-model";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { resolvedTheme } from "@/stores/theme";
 
@@ -41,6 +43,20 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   void crepe?.destroy();
 });
+
+/** Parse markdown (or raw component source) and insert it at the cursor. */
+function insertSnippet(text: string): void {
+  if (!crepe) return;
+  crepe.editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx);
+    const parser = ctx.get(parserCtx);
+    const doc = parser(text);
+    view.dispatch(view.state.tr.replaceSelection(Slice.maxOpen(doc.content)).scrollIntoView());
+    view.focus();
+  });
+}
+
+defineExpose({ insertSnippet });
 </script>
 
 <template>

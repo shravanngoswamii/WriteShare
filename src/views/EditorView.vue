@@ -20,6 +20,11 @@ const router = useRouter();
 
 type Status = "idle" | "local" | "pushing" | "pushed" | "error";
 
+const branchOverride =
+  typeof route.query.branch === "string" && route.query.branch.trim()
+    ? route.query.branch.trim()
+    : "";
+
 const state = reactive({
   loading: true,
   loadError: "",
@@ -55,8 +60,20 @@ const dirty = computed(() => !state.loading && !state.loadError && snapshot() !=
 
 const slug = computed(() => {
   const file = state.repoPath.split("/").pop() ?? "";
-  return file.replace(/\.mdx?$/i, "");
+  return file.replace(/\.[^.]+$/, "");
 });
+
+const onDefaultBranch = computed(
+  () => Boolean(state.baseBranch) && state.branch === state.baseBranch,
+);
+
+const editorRef = ref<{ insertSnippet: (text: string) => void } | null>(null);
+const insertOpen = ref(false);
+
+function insertComponent(text: string): void {
+  editorRef.value?.insertSnippet(text);
+  insertOpen.value = false;
+}
 const permalink = computed(() =>
   cfg.value ? permalinkFor(cfg.value.urlTemplate, slug.value) : "",
 );
@@ -97,7 +114,7 @@ onMounted(async () => {
       const dir = folder ? `${repo.contentPath}/${folder}` : repo.contentPath;
       const ext = cfg.value?.extension ?? ".md";
       state.repoPath = `${dir}/${kebab(rawTitle)}${ext}`;
-      state.branch = draftBranchFor(state.repoPath);
+      state.branch = branchOverride || draftBranchFor(state.repoPath);
       serverFm = {
         ...(cfg.value?.template ?? {}),
         title: rawTitle,
@@ -108,12 +125,21 @@ onMounted(async () => {
       const path = String(route.query.path ?? "");
       if (!path) throw new Error("Nothing to edit. Open a post from the list.");
       state.repoPath = path;
-      state.branch = draftBranchFor(path);
-      const draft = await client.getFile(repo, state.branch, path).catch(() => null);
-      const base = draft ? null : await client.getFile(repo, state.baseBranch, path);
-      const source = draft ?? base;
+      state.branch = branchOverride || draftBranchFor(path);
+
+      let source: { content: string; sha: string } | null;
+      if (!branchOverride || state.branch.startsWith("draft/")) {
+        // WriteShare draft flow: resume the draft branch if it holds this file.
+        const draft = await client.getFile(repo, state.branch, path).catch(() => null);
+        const base = draft ? null : await client.getFile(repo, state.baseBranch, path);
+        source = draft ?? base;
+        state.fileSha = draft?.sha; // only same-branch shas are valid for updates
+      } else {
+        // Working directly on an existing branch: its sha is the push target.
+        source = await client.getFile(repo, state.branch, path);
+        state.fileSha = source?.sha;
+      }
       if (!source) throw new Error(`File not found: ${path}`);
-      state.fileSha = draft?.sha; // only same-branch shas are valid for updates
       const parsed = parsePost(source.content);
       serverFm = { ...(cfg.value?.template ?? {}), ...parsed.data };
       serverBody = parsed.body;
@@ -303,11 +329,33 @@ const statusLabel = computed(() => {
         <span class="status" :class="`status-${state.status}`">
           <span class="dot" aria-hidden="true" />{{ statusLabel }}
         </span>
+        <div v-if="cfg.components.length" class="insert-menu">
+          <button class="insert-btn" :aria-expanded="insertOpen" @click="insertOpen = !insertOpen">Insert</button>
+          <div v-if="insertOpen" class="insert-backdrop" @click="insertOpen = false" />
+          <div v-if="insertOpen" class="insert-panel">
+            <button
+              v-for="c in cfg.components"
+              :key="c.name"
+              class="insert-item"
+              :title="c.description ?? c.name"
+              @click="insertComponent(c.insert)"
+            >
+              <span class="insert-label">{{ c.label }}</span>
+              <span v-if="c.description" class="insert-desc">{{ c.description }}</span>
+            </button>
+          </div>
+        </div>
         <ThemeToggle />
         <button class="push-btn" :disabled="!dirty || state.status === 'pushing'" @click="requestPush">Push</button>
-        <button class="primary pr-btn" :disabled="state.status === 'pushing'" @click="void openPr()">
+        <button
+          v-if="!onDefaultBranch"
+          class="primary pr-btn"
+          :disabled="state.status === 'pushing'"
+          @click="void openPr()"
+        >
           {{ state.prUrl ? "View PR" : "Open PR" }}
         </button>
+        <span v-else class="chip" title="Commits go straight to the default branch">default branch</span>
       </div>
 
       <div v-if="state.status === 'error'" class="banner">{{ state.error }}</div>
@@ -318,7 +366,7 @@ const statusLabel = computed(() => {
       </div>
 
       <MetadataPanel v-model="state.fm" :fields="cfg.fields" :slug="slug" :url-template="cfg.urlTemplate" />
-      <MarkdownEditor v-model="state.body" />
+      <MarkdownEditor ref="editorRef" v-model="state.body" />
 
       <PushDialog
         :open="showPushDialog"
@@ -389,6 +437,58 @@ const statusLabel = computed(() => {
 .pr-btn,
 .push-btn {
   flex-shrink: 0;
+}
+
+.insert-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.insert-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.insert-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 220px;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.insert-item {
+  display: grid;
+  gap: 0.1rem;
+  text-align: left;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+}
+
+.insert-item:hover:not(:disabled) {
+  background: var(--fill);
+}
+
+.insert-item:active:not(:disabled) {
+  transform: none;
+}
+
+.insert-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.insert-desc {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
 }
 
 .link-btn {

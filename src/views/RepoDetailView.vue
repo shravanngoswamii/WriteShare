@@ -42,6 +42,7 @@ const repo = computed(() => {
   const r = target.value;
   return r ? { owner: r.owner, repo: r.repo } : null;
 });
+const componentsList = computed(() => (target.value ? resolveConfig(target.value).components : []));
 const repoUrl = computed(() =>
   repo.value ? `https://github.com/${repo.value.owner}/${repo.value.repo}` : "#",
 );
@@ -194,6 +195,14 @@ async function doClosePr(prNumber: number): Promise<void> {
           <label for="commit-template">Commit message template ({action}, {path}, {title})</label>
           <input id="commit-template" v-model="form.commitTemplate" type="text" placeholder="{action} {path} (via WriteShare)" />
         </div>
+        <div v-if="componentsList.length" class="field">
+          <label>Components (from writeshare.yml, available in the editor's Insert menu)</label>
+          <div class="components-list">
+            <span v-for="c in componentsList" :key="c.name" class="chip" :title="c.description ?? c.name">
+              {{ c.label }}
+            </span>
+          </div>
+        </div>
         <div class="settings-actions">
           <button class="primary" @click="saveSettings">{{ form.saved ? "Saved" : "Save settings" }}</button>
           <button :disabled="busy.reloadingConfig" @click="void reloadConfig()">
@@ -323,6 +332,12 @@ async function doClosePr(prNumber: number): Promise<void> {
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   max-width: 640px;
+}
+
+.components-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .settings-actions {
