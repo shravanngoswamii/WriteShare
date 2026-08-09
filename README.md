@@ -44,7 +44,32 @@ commit:
   template: "{action} {path} (via WriteShare)"
 ```
 
-Field types: `string`, `text`, `date`, `boolean`, `string[]`, `enum[]`. Commit template tokens: `{action}`, `{path}`, `{title}`.
+Field types: `string`, `text`, `date`, `boolean`, `string[]`, `enum[]`. Commit template tokens: `{action}`, `{path}`, `{title}`. Extension is any suffix; `.qmd` makes WriteShare work on Quarto content (`.qmd` files are listed, created and edited; YAML frontmatter parses the same, shortcodes stay plain text).
+
+### Components
+
+Repos can declare their MDX/directive/shortcode components; the editor's **Insert** menu offers them and drops the source at the cursor:
+
+```yaml
+components:
+  - name: note-callout
+    label: Note callout
+    description: Quarto-style callout block
+    insert: |
+      ::: {.callout-note}
+      Write the note here.
+      :::
+  - name: plot
+    label: Interactive plot
+    insert: |
+      <Plot expr="sin(x)/x" domain="[-10, 10]" />
+```
+
+Snippets are inserted as source text and round-trip untouched; the editor does not render the components themselves (that needs your site's build).
+
+## Branches
+
+Posts screen topbar has a branch picker: browse the default branch or any `draft/*` branch, and edits push to the branch you picked. When the working branch is the default branch, PR buttons hide because commits there publish directly.
 
 ## Permissions and sign-out
 
