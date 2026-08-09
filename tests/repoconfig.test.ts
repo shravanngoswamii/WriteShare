@@ -42,6 +42,28 @@ describe("parseRepoConfig", () => {
       "collections:\n  - path: x\n    fields:\n      - name: ok\n        type: string\n      - name: bad\n        type: wat\n";
     expect(parseRepoConfig(yaml).fields?.map((f) => f.name)).toEqual(["ok"]);
   });
+
+  it("accepts arbitrary extensions like .qmd for quarto", () => {
+    expect(parseRepoConfig("collections:\n  - path: posts\n    extension: .QMD\n").extension).toBe(
+      ".qmd",
+    );
+    expect(
+      parseRepoConfig("collections:\n  - path: posts\n    extension: mdx!\n").extension,
+    ).toBeUndefined();
+  });
+
+  it("parses component snippets", () => {
+    const yaml = [
+      "components:",
+      "  - name: note",
+      "    label: Note callout",
+      '    insert: ":::note\\ncontent\\n:::"',
+      "  - name: broken",
+    ].join("\n");
+    const cfg = parseRepoConfig(yaml);
+    expect(cfg.components?.map((c) => c.label)).toEqual(["Note callout"]);
+    expect(cfg.components?.[0].insert).toContain("content");
+  });
 });
 
 describe("mergeRepoConfig / defaults", () => {
