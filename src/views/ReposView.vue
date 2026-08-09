@@ -12,6 +12,34 @@ import {
   setActive,
 } from "@/stores/repos";
 import { settings } from "@/stores/settings";
+import { type Palette, setPalette, theme } from "@/stores/theme";
+
+const PALETTES: Array<{ id: Palette; name: string; light: string[]; dark: string[] }> = [
+  {
+    id: "classic",
+    name: "Classic",
+    light: ["#f4f4f6", "#ffffff", "#0071e3"],
+    dark: ["#101d2b", "#17293c", "#2f96ff"],
+  },
+  {
+    id: "warm",
+    name: "Warm",
+    light: ["#f7f3ec", "#fdfbf5", "#b45309"],
+    dark: ["#1c1712", "#28211a", "#e8a04c"],
+  },
+  {
+    id: "forest",
+    name: "Forest",
+    light: ["#f0f5f1", "#ffffff", "#1e7a46"],
+    dark: ["#0f1d15", "#17281e", "#43c878"],
+  },
+  {
+    id: "graphite",
+    name: "Graphite",
+    light: ["#f3f4f6", "#ffffff", "#455a9e"],
+    dark: ["#181a1e", "#22252b", "#7d97f4"],
+  },
+];
 
 const router = useRouter();
 const addForm = reactive({ slug: "", contentPath: "src/content/blog", error: "" });
@@ -140,6 +168,28 @@ function manage(index: number): void {
 
     <h2 class="section-title">App settings</h2>
     <div class="composer">
+      <div class="field">
+        <label>Palette (matte, light + dark pair)</label>
+        <div class="palette-grid">
+          <button
+            v-for="p in PALETTES"
+            :key="p.id"
+            class="palette-card"
+            :class="{ active: theme.palette === p.id }"
+            @click="setPalette(p.id)"
+          >
+            <span class="swatches">
+              <span class="swatch-row">
+                <span v-for="c in p.light" :key="`l${c}`" class="swatch" :style="{ background: c }" />
+              </span>
+              <span class="swatch-row">
+                <span v-for="c in p.dark" :key="`d${c}`" class="swatch" :style="{ background: c }" />
+              </span>
+            </span>
+            <span class="palette-name">{{ p.name }}</span>
+          </button>
+        </div>
+      </div>
       <label class="checkbox-row settings-row">
         <input v-model="settings.autoSaveToGitHub" type="checkbox" />
         <span>Auto-save to GitHub</span>
@@ -280,5 +330,50 @@ function manage(index: number): void {
 
 .settings-row {
   gap: 0.6rem;
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+}
+
+.palette-card {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  padding: 0.7rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--fill);
+}
+
+.palette-card:hover:not(:disabled) {
+  background: var(--fill-strong);
+}
+
+.palette-card.active {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.swatches {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.swatch-row {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.palette-name {
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 </style>

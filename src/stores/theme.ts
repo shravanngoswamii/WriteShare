@@ -1,14 +1,21 @@
 import { reactive } from "vue";
 
 export type ThemeMode = "system" | "light" | "dark";
+export type Palette = "classic" | "warm" | "forest" | "graphite";
 
-const KEY = "writeshare.theme";
+const THEME_KEY = "writeshare.theme";
+const PALETTE_KEY = "writeshare.palette";
 const media = window.matchMedia("(prefers-color-scheme: dark)");
 
-const saved = localStorage.getItem(KEY);
+const saved = localStorage.getItem(THEME_KEY);
+const savedPalette = localStorage.getItem(PALETTE_KEY);
 
-export const theme = reactive<{ mode: ThemeMode }>({
+export const theme = reactive<{ mode: ThemeMode; palette: Palette }>({
   mode: saved === "light" || saved === "dark" ? saved : "system",
+  palette:
+    savedPalette === "warm" || savedPalette === "forest" || savedPalette === "graphite"
+      ? savedPalette
+      : "classic",
 });
 
 export function resolvedTheme(): "light" | "dark" {
@@ -17,7 +24,13 @@ export function resolvedTheme(): "light" | "dark" {
 
 export function setTheme(mode: ThemeMode): void {
   theme.mode = mode;
-  localStorage.setItem(KEY, mode);
+  localStorage.setItem(THEME_KEY, mode);
+  applyTheme();
+}
+
+export function setPalette(palette: Palette): void {
+  theme.palette = palette;
+  localStorage.setItem(PALETTE_KEY, palette);
   applyTheme();
 }
 
@@ -28,6 +41,7 @@ export function cycleTheme(): void {
 
 export function applyTheme(): void {
   document.documentElement.dataset.theme = resolvedTheme();
+  document.documentElement.dataset.palette = theme.palette;
 }
 
 media.addEventListener("change", () => {
