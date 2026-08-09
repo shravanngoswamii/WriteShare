@@ -13,8 +13,31 @@ const filter = ref("");
 const newPost = reactive({ title: "", folder: "" });
 const composing = ref(false);
 const selectedFolder = ref("");
+const branchMenuOpen = ref(false);
+const draftBranches = ref<string[]>([]);
 
 const target = computed(() => activeRepo());
+const currentBranch = computed(
+  () => target.value?.workingBranch || target.value?.defaultBranch || "main",
+);
+
+async function toggleBranchMenu(): Promise<void> {
+  branchMenuOpen.value = !branchMenuOpen.value;
+  const t = target.value;
+  if (branchMenuOpen.value && t) {
+    draftBranches.value = await githubClient()
+      .listBranches(t, "draft/")
+      .catch(() => []);
+  }
+}
+
+async function chooseBranch(branch: string): Promise<void> {
+  const t = target.value;
+  if (!t) return;
+  t.workingBranch = branch || undefined;
+  branchMenuOpen.value = false;
+  await refreshPosts();
+}
 
 onMounted(async () => {
   const repo = target.value;
@@ -73,7 +96,10 @@ const scopeHint = computed(() => {
 });
 
 function openEntry(path: string): void {
-  void router.push({ path: "/edit", query: { path } });
+  void router.push({
+    path: "/edit",
+    query: { path, ...(target.value?.workingBranch ? { branch: target.value.workingBranch } : {}) },
+  });
 }
 
 function createNew(): void {
@@ -101,6 +127,28 @@ function signOut(): void {
       <button class="repo-chip" title="Repositories" @click="void router.push('/repos')">
         {{ target ? `${target.owner}/${target.repo}` : "No repository" }}
       </button>
+      <div class="branch-menu">
+        <button class="repo-chip" :aria-expanded="branchMenuOpen" title="Working branch" @click="void toggleBranchMenu()">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0zM8 5.75A.75.75 0 0 0 8 4.25v1.5zM7.25 8a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0zM5 8.75a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 0 0-4.5 0zm-2.25.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM8 11.25a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5z"
+            />
+          </svg>
+          {{ currentBranch }}
+        </button>
+        <div v-if="branchMenuOpen" class="menu-backdrop" @click="branchMenuOpen = false" />
+        <div v-if="branchMenuOpen" class="menu-panel">
+          <button class="menu-item" :disabled="!target?.workingBranch" @click="void chooseBranch('')">
+            <span class="menu-label">{{ target?.defaultBranch ?? "main" }}</span>
+            <span class="menu-sub">default</span>
+          </button>
+          <p v-if="!draftBranches.length" class="menu-empty">No draft branches</p>
+          <button v-for="b in draftBranches" :key="b" class="menu-item" @click="void chooseBranch(b)">
+            <span class="menu-label">{{ b }}</span>
+            <span v-if="b === target?.workingBranch" class="menu-sub">current</span>
+          </button>
+        </div>
+      </div>
       <ThemeToggle />
       <img
         v-if="auth.user"
@@ -203,6 +251,73 @@ function signOut(): void {
   font-size: 0.78rem;
   color: var(--ink-muted);
   padding: 0.35rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.branch-menu {
+  position: relative;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.menu-panel {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 220px;
+  max-height: 300px;
+  overflow: auto;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--fill);
+}
+
+.menu-item:active:not(:disabled) {
+  transform: none;
+}
+
+.menu-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-sub {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.menu-empty {
+  margin: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
 }
 
 .explorer {
