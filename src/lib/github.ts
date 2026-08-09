@@ -105,16 +105,26 @@ export class GitHubClient {
     return ref.object.sha;
   }
 
-  /** All markdown file paths under `dir` on the given branch (one API call). */
-  async listMarkdownFiles(repo: RepoCoordinate, branch: string, dir: string): Promise<string[]> {
+  /** All content file paths under `dir` on the given branch (one API call). */
+  async listMarkdownFiles(
+    repo: RepoCoordinate,
+    branch: string,
+    dir: string,
+    extensions: string[] = [".md", ".mdx"],
+  ): Promise<string[]> {
     const sha = await this.branchHeadSha(repo, branch);
     const tree = await this.req<{ tree: TreeItem[]; truncated: boolean }>(
       "GET",
       `/repos/${repo.owner}/${repo.repo}/git/trees/${sha}?recursive=1`,
     );
     const prefix = `${dir.replace(/\/+$/, "")}/`;
+    const exts = new Set(extensions.map((e) => e.toLowerCase()));
     return tree.tree
-      .filter((t) => t.type === "blob" && t.path.startsWith(prefix) && /\.mdx?$/i.test(t.path))
+      .filter((t) => {
+        if (t.type !== "blob" || !t.path.startsWith(prefix)) return false;
+        const m = /\.[^./]+$/i.exec(t.path);
+        return m !== null && exts.has(m[0].toLowerCase());
+      })
       .map((t) => t.path)
       .sort();
   }

@@ -2,6 +2,7 @@ import { reactive, watch } from "vue";
 import type { CollectionField } from "@/config";
 import type { GitHubClient } from "@/lib/github";
 import {
+  type ComponentSnippet,
   defaultRepoConfig,
   fetchRepoConfig,
   mergeRepoConfig,
@@ -15,11 +16,14 @@ export interface RepoTarget {
   contentPath: string;
   defaultBranch?: string;
   /** App overrides and writeshare.yml cache (undefined = inherit defaults). */
-  extension?: ".md" | ".mdx";
+  extension?: ".md" | ".mdx" | ".qmd" | string;
   fields?: CollectionField[];
   fmTemplate?: Record<string, unknown>;
   urlTemplate?: string;
   commitTemplate?: string;
+  components?: ComponentSnippet[];
+  /** Branch the user is browsing/editing on (empty = default branch). */
+  workingBranch?: string;
   /** Last time writeshare.yml was fetched; manual edits mark the target as app-configured. */
   configCheckedAt?: number;
   configSource?: "file" | "app";
@@ -110,6 +114,7 @@ export function resolveConfig(target: RepoTarget): RepoConfig {
     template: target.fmTemplate,
     urlTemplate: target.urlTemplate || undefined,
     commitTemplate: target.commitTemplate,
+    components: target.components,
   });
 }
 
@@ -123,6 +128,7 @@ export async function refreshRepoConfig(client: GitHubClient, target: RepoTarget
   target.fmTemplate = cfg.template;
   target.urlTemplate = cfg.urlTemplate;
   target.commitTemplate = cfg.commitTemplate;
+  target.components = cfg.components;
   target.configCheckedAt = Date.now();
   target.configSource = "file";
 }

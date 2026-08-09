@@ -3,17 +3,27 @@ import { BLOG_COLLECTION, type CollectionField, type FieldType } from "@/config"
 import type { GitHubClient, RepoCoordinate } from "./github";
 import { applyTemplate, DEFAULT_COMMIT_TEMPLATE } from "./template";
 
+/** A component snippet a repo declares, inserted as source text at the cursor. */
+export interface ComponentSnippet {
+  name: string;
+  label: string;
+  insert: string;
+  description?: string;
+}
+
 /**
  * Per-repo configuration. Source of truth: an optional `writeshare.yml` at the
  * repo root, with in-app overrides stored on the RepoTarget.
  */
 export interface RepoConfig {
   contentPath: string;
-  extension: ".md" | ".mdx";
+  /** File extension for new entries and listing priority (e.g. .md, .mdx, .qmd). */
+  extension: string;
   fields: CollectionField[];
   template: Record<string, unknown>;
   urlTemplate: string;
   commitTemplate: string;
+  components: ComponentSnippet[];
 }
 
 export function defaultRepoConfig(): RepoConfig {
@@ -24,6 +34,7 @@ export function defaultRepoConfig(): RepoConfig {
     template: { ...BLOG_COLLECTION.template },
     urlTemplate: "",
     commitTemplate: DEFAULT_COMMIT_TEMPLATE,
+    components: [],
   };
 }
 
@@ -73,7 +84,9 @@ export function parseRepoConfig(yamlText: string): Partial<RepoConfig> {
   if (first) {
     if (typeof first.path === "string" && first.path.trim())
       out.contentPath = first.path.trim().replace(/\/+$/, "");
-    if (first.extension === ".md" || first.extension === ".mdx") out.extension = first.extension;
+    if (typeof first.extension === "string" && /^\.[a-z0-9]{1,8}$/i.test(first.extension)) {
+      out.extension = first.extension.toLowerCase();
+    }
     const fields = sanitizeFields(first.fields);
     if (fields) out.fields = fields;
     if (first.template && typeof first.template === "object") {
@@ -89,7 +102,27 @@ export function parseRepoConfig(yamlText: string): Partial<RepoConfig> {
     out.commitTemplate = commit.template;
   }
 
+  const components = sanitizeComponents(root.components);
+  if (components) out.components = components;
+
   return out;
+}
+
+function sanitizeComponents(input: unknown): ComponentSnippet[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const out: ComponentSnippet[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== "object") continue;
+    const c = raw as Record<string, unknown>;
+    if (typeof c.name !== "string" || typeof c.insert !== "string" || !c.insert.trim()) continue;
+    out.push({
+      name: c.name,
+      label: typeof c.label === "string" ? c.label : c.name,
+      insert: c.insert,
+      description: typeof c.description === "string" ? c.description : undefined,
+    });
+  }
+  return out.length ? out : undefined;
 }
 
 export function mergeRepoConfig(override: Partial<RepoConfig>): RepoConfig {
