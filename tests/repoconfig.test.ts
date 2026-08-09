@@ -73,6 +73,17 @@ describe("mergeRepoConfig / defaults", () => {
     expect(merged.fields.length).toBe(defaultRepoConfig().fields.length);
     expect(merged.commitTemplate).toBe(defaultRepoConfig().commitTemplate);
   });
+
+  it("keeps defaults when overrides are explicitly undefined", () => {
+    const merged = mergeRepoConfig({
+      components: undefined,
+      fields: undefined,
+      extension: undefined,
+    });
+    expect(merged.components).toEqual([]);
+    expect(merged.fields.length).toBeGreaterThan(0);
+    expect(merged.extension).toBe(".md");
+  });
 });
 
 describe("permalinkFor", () => {

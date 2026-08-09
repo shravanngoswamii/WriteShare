@@ -126,7 +126,12 @@ function sanitizeComponents(input: unknown): ComponentSnippet[] | undefined {
 }
 
 export function mergeRepoConfig(override: Partial<RepoConfig>): RepoConfig {
-  return { ...defaultRepoConfig(), ...override };
+  const out: Record<string, unknown> = { ...defaultRepoConfig() };
+  // Keys present with value undefined (older cached targets) must not erase defaults.
+  for (const [key, value] of Object.entries(override)) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out as unknown as RepoConfig;
 }
 
 /** Fetch and apply writeshare.yml from the repo root, if present. */
