@@ -1,21 +1,20 @@
 /*
- * WriteShare design system v2: editorial.
- * Principles: typography first (serif display, grotesque body, mono metadata),
- * structure with hairline rules instead of fills, squared geometry, no shadows,
- * no glass, no gloss. Scrollbars are hidden globally but scrolling works.
+ * WriteShare design system v3: raw source.
+ * Thesis: the interface admits it is a text file. Monospace runs the whole
+ * chrome, markdown and git syntax carry the structure (## headings, // hints,
+ * --- frontmatter fences, tree glyphs), and prose type appears only where the
+ * writing itself lives. Nothing is rounded, nothing fades, nothing floats:
+ * 2px rules, flat fills, snapped state changes, visible scrollbars.
  */
 
 :root {
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --accent-ink: #ffffff;
-  --rule: var(--ink);
+  --edge: 2px;
+  --hair: 1px;
 
-  --font-body:
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --font-prose:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: ui-serif, Georgia, "Times New Roman", serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 [data-theme="light"] {
@@ -26,149 +25,107 @@
   color-scheme: dark;
 }
 
-/* classic: warm paper light, matte navy dark */
+/* blueprint: photocopy gray + the browser's own unstyled link blue */
 :root,
-[data-theme="light"][data-palette="classic"] {
-  --canvas: #faf9f5;
+[data-theme="light"][data-palette="blueprint"] {
+  --canvas: #e7e8ea;
+  --paper: #fbfbfc;
+  --fill: rgba(16, 17, 20, 0.05);
+  --fill-strong: rgba(16, 17, 20, 0.1);
+  --separator: rgba(16, 17, 20, 0.22);
+  --ink: #101114;
+  --ink-muted: #63666e;
+  --accent: #1b3dff;
+  --accent-ink: #ffffff;
+  --mark: #6a2ecc;
+  --ok: #067d3a;
+  --danger: #d81f11;
+}
+
+[data-theme="dark"][data-palette="blueprint"] {
+  --canvas: #131418;
+  --paper: #1a1c22;
+  --fill: rgba(233, 234, 238, 0.06);
+  --fill-strong: rgba(233, 234, 238, 0.12);
+  --separator: rgba(233, 234, 238, 0.24);
+  --ink: #e9eaee;
+  --ink-muted: #8b909c;
+  --accent: #6c8cff;
+  --accent-ink: #0b0c10;
+  --mark: #b48cff;
+  --ok: #3fce6f;
+  --danger: #ff6a5c;
+}
+
+/* riso: duotone lavender stock, hot pink ink */
+[data-theme="light"][data-palette="riso"] {
+  --canvas: #e8e4f2;
+  --paper: #fcfaff;
+  --fill: rgba(22, 19, 32, 0.05);
+  --fill-strong: rgba(22, 19, 32, 0.1);
+  --separator: rgba(22, 19, 32, 0.22);
+  --ink: #161320;
+  --ink-muted: #64607a;
+  --accent: #e0186a;
+  --accent-ink: #ffffff;
+  --mark: #2a1fd6;
+  --ok: #0a7d55;
+  --danger: #d2172a;
+}
+
+[data-theme="dark"][data-palette="riso"] {
+  --canvas: #141221;
+  --paper: #1d1a30;
+  --fill: rgba(240, 236, 255, 0.06);
+  --fill-strong: rgba(240, 236, 255, 0.12);
+  --separator: rgba(240, 236, 255, 0.24);
+  --ink: #eee9ff;
+  --ink-muted: #918bb0;
+  --accent: #ff5c96;
+  --accent-ink: #16131f;
+  --mark: #8f8bff;
+  --ok: #3fd193;
+  --danger: #ff6a6a;
+}
+
+/* carbon: no chroma at all, contrast does the work */
+[data-theme="light"][data-palette="carbon"] {
+  --canvas: #ededed;
   --paper: #ffffff;
-  --fill: rgba(0, 0, 0, 0.04);
-  --fill-strong: rgba(0, 0, 0, 0.075);
-  --separator: rgba(0, 0, 0, 0.14);
-  --ink: #16161a;
-  --ink-muted: #6d6d74;
-  --accent: #2447e0;
-  --accent-hover: #1b36b0;
-  --ok: #2da44e;
-  --danger: #c92b1f;
-  --danger-bg: rgba(201, 43, 31, 0.07);
+  --fill: rgba(0, 0, 0, 0.06);
+  --fill-strong: rgba(0, 0, 0, 0.12);
+  --separator: rgba(0, 0, 0, 0.25);
+  --ink: #000000;
+  --ink-muted: #5c5c5c;
+  --accent: #000000;
+  --accent-ink: #ffffff;
+  --mark: #5c5c5c;
+  --ok: #000000;
+  --danger: #b00000;
 }
 
-[data-theme="dark"][data-palette="classic"] {
-  --canvas: #101828;
-  --paper: #182233;
-  --fill: rgba(255, 255, 255, 0.05);
-  --fill-strong: rgba(255, 255, 255, 0.09);
-  --separator: rgba(255, 255, 255, 0.14);
-  --ink: #edf1f8;
-  --ink-muted: #94a4bc;
-  --accent: #6e9bff;
-  --accent-hover: #8fb0ff;
-  --ok: #3fce5a;
-  --danger: #ff7168;
-  --danger-bg: rgba(255, 100, 95, 0.12);
+[data-theme="dark"][data-palette="carbon"] {
+  --canvas: #101010;
+  --paper: #1a1a1a;
+  --fill: rgba(255, 255, 255, 0.07);
+  --fill-strong: rgba(255, 255, 255, 0.14);
+  --separator: rgba(255, 255, 255, 0.26);
+  --ink: #f2f2f2;
+  --ink-muted: #9a9a9a;
+  --accent: #f2f2f2;
+  --accent-ink: #101010;
+  --mark: #9a9a9a;
+  --ok: #f2f2f2;
+  --danger: #ff6b6b;
 }
 
-/* warm: cream light, matte espresso dark */
-[data-theme="light"][data-palette="warm"] {
-  --canvas: #f6f1e7;
-  --paper: #fdfaf2;
-  --fill: rgba(60, 45, 20, 0.05);
-  --fill-strong: rgba(60, 45, 20, 0.09);
-  --separator: rgba(60, 45, 20, 0.16);
-  --ink: #2a251d;
-  --ink-muted: #857a67;
-  --accent: #b45309;
-  --accent-hover: #8f3f05;
-  --ok: #3d8a47;
-  --danger: #c92525;
-  --danger-bg: rgba(190, 30, 30, 0.07);
-}
-
-[data-theme="dark"][data-palette="warm"] {
-  --canvas: #1c1610;
-  --paper: #271f16;
-  --fill: rgba(255, 244, 222, 0.055);
-  --fill-strong: rgba(255, 244, 222, 0.095);
-  --separator: rgba(255, 244, 222, 0.14);
-  --ink: #f1eadc;
-  --ink-muted: #a0948a;
-  --accent: #e8a04c;
-  --accent-hover: #f2b464;
-  --ok: #58c06a;
-  --danger: #ff6f64;
-  --danger-bg: rgba(255, 99, 88, 0.12);
-}
-
-/* forest: mint light, matte deep green dark */
-[data-theme="light"][data-palette="forest"] {
-  --canvas: #eff5f0;
-  --paper: #ffffff;
-  --fill: rgba(20, 60, 35, 0.05);
-  --fill-strong: rgba(20, 60, 35, 0.085);
-  --separator: rgba(20, 60, 35, 0.16);
-  --ink: #17241c;
-  --ink-muted: #5e7267;
-  --accent: #1e7a46;
-  --accent-hover: #145c34;
-  --ok: #2da44e;
-  --danger: #c03324;
-  --danger-bg: rgba(190, 45, 30, 0.07);
-}
-
-[data-theme="dark"][data-palette="forest"] {
-  --canvas: #0e1c14;
-  --paper: #16271d;
-  --fill: rgba(230, 255, 238, 0.05);
-  --fill-strong: rgba(230, 255, 238, 0.09);
-  --separator: rgba(230, 255, 238, 0.14);
-  --ink: #e6f2ea;
-  --ink-muted: #92ae9c;
-  --accent: #43c878;
-  --accent-hover: #5ad98a;
-  --ok: #4bd67a;
-  --danger: #ff7168;
-  --danger-bg: rgba(255, 69, 58, 0.12);
-}
-
-/* graphite: neutral gray light, matte slate dark */
-[data-theme="light"][data-palette="graphite"] {
-  --canvas: #f2f3f5;
-  --paper: #ffffff;
-  --fill: rgba(15, 23, 42, 0.045);
-  --fill-strong: rgba(15, 23, 42, 0.08);
-  --separator: rgba(15, 23, 42, 0.15);
-  --ink: #1e2430;
-  --ink-muted: #69707d;
-  --accent: #464f9e;
-  --accent-hover: #343c80;
-  --ok: #2f9e57;
-  --danger: #d0342c;
-  --danger-bg: rgba(208, 52, 44, 0.07);
-}
-
-[data-theme="dark"][data-palette="graphite"] {
-  --canvas: #17191d;
-  --paper: #21242a;
-  --fill: rgba(255, 255, 255, 0.05);
-  --fill-strong: rgba(255, 255, 255, 0.09);
-  --separator: rgba(255, 255, 255, 0.14);
-  --ink: #e7e9ee;
-  --ink-muted: #9ba1ac;
-  --accent: #8ea6ff;
-  --accent-hover: #a5b9ff;
-  --ok: #4cc474;
-  --danger: #ff7168;
-  --danger-bg: rgba(255, 100, 95, 0.12);
-}
-
-/* --- Reset & the hidden-scrollbar rule --- */
+/* --- Reset. Scrollbars stay visible; they are part of the machine. --- */
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-  scrollbar-width: none; /* firefox */
-  -ms-overflow-style: none; /* legacy edge */
-}
-
-*::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none; /* chromium */
-}
-
-html {
-  scrollbar-width: none;
+  border-radius: 0;
 }
 
 html,
@@ -182,56 +139,74 @@ body,
 body {
   background: var(--canvas);
   color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  font-family: var(--font-mono);
+  font-size: 0.855rem;
+  line-height: 1.5;
+  font-variant-ligatures: none;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--canvas);
+  border-left: var(--hair) solid var(--separator);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-muted);
+  border: 3px solid var(--canvas);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink);
 }
 
 a {
   color: var(--accent);
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
 }
 
-/* --- Controls: rectangular, ink-outlined, small-caps metaphors --- */
+/* --- Controls: square, flat, uppercase, instant --- */
 
 button {
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   cursor: pointer;
-  background: transparent;
+  background: var(--canvas);
   color: var(--ink);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-md);
-  padding: 0.45rem 1rem;
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease,
-    border-color 0.12s ease;
+  border: var(--edge) solid var(--ink);
+  padding: 0.4rem 0.85rem;
   -webkit-tap-highlight-color: transparent;
 }
 
 button:hover:not(:disabled) {
-  background: var(--fill-strong);
+  background: var(--ink);
+  color: var(--canvas);
 }
 
 button.primary {
   background: var(--ink);
   color: var(--canvas);
-  border-color: var(--ink);
 }
 
 button.primary:hover:not(:disabled) {
@@ -240,14 +215,33 @@ button.primary:hover:not(:disabled) {
   color: var(--accent-ink);
 }
 
+button.quiet {
+  border-color: var(--separator);
+  background: transparent;
+}
+
+button.destructive {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+
+button.destructive:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--canvas);
+  border-color: var(--danger);
+}
+
 button:disabled {
-  opacity: 0.45;
-  cursor: default;
+  color: var(--ink-muted);
+  border-color: var(--separator);
+  background: transparent;
+  cursor: not-allowed;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--edge) solid var(--accent);
+  outline-offset: 1px;
 }
 
 input,
@@ -255,12 +249,10 @@ textarea,
 select {
   font: inherit;
   color: var(--ink);
-  background: transparent;
-  border: 1.5px solid var(--separator);
-  border-radius: var(--radius-sm);
-  padding: 0.55rem 0.8rem;
+  background: var(--paper);
+  border: var(--edge) solid var(--separator);
+  padding: 0.45rem 0.6rem;
   width: 100%;
-  transition: border-color 0.12s ease;
 }
 
 input::placeholder,
@@ -275,22 +267,54 @@ select:focus {
   border-color: var(--ink);
 }
 
-summary {
+/* Checkboxes and radios are [x] boxes, never pills or circles. */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  flex-shrink: 0;
+  border: var(--edge) solid var(--ink);
+  background: var(--paper);
   cursor: pointer;
-  color: var(--ink-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
-/* --- Layout & shared pieces --- */
+input[type="checkbox"]::after {
+  content: "x";
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--canvas);
+  visibility: hidden;
+}
+
+input[type="radio"]::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  background: var(--canvas);
+  visibility: hidden;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background: var(--ink);
+}
+
+input[type="checkbox"]:checked::after,
+input[type="radio"]:checked::after {
+  visibility: visible;
+}
+
+/* --- Page frame: fixed command bar on top, status line at the bottom --- */
 
 .page {
   width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 1rem 1.5rem 6rem;
+  padding: 0 1rem 4rem;
 }
 
 .topbar {
@@ -299,21 +323,46 @@ summary {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin: -1rem -1.5rem 1.5rem;
-  padding: 0.7rem 1.5rem;
+  gap: 0.4rem;
+  margin: 0 -1rem 1.25rem;
+  padding: 0.5rem 1rem;
+  min-height: 44px;
   background: var(--canvas);
-  border-bottom: 1.5px solid var(--ink);
+  border-bottom: var(--edge) solid var(--ink);
 }
 
 .large-title {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 1.7rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.large-title::before {
+  content: "$ ";
+  color: var(--ink-muted);
+}
+
+/* `## heading`: structure written in the syntax of the files being edited. */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 2rem 0 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.section-title::before {
+  content: "##";
+  color: var(--ink-muted);
+  font-weight: 400;
 }
 
 .muted {
@@ -321,37 +370,166 @@ summary {
 }
 
 .small {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+}
+
+/* `// note`: help text speaks in code comments, never in marketing. */
+.hint {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.hint::before {
+  content: "// ";
+}
+
+.label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.prose {
+  font-family: var(--font-prose);
+}
+
+/* --- Blocks, rows, fields --- */
+
+.block {
+  border: var(--edge) solid var(--ink);
+  background: var(--paper);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.grouped {
+  border: var(--edge) solid var(--ink);
+  background: var(--paper);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.855rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.grouped > * + *,
+.grouped > .stack + .stack {
+  border-top: var(--hair) solid var(--separator);
+}
+
+.row:disabled {
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.row-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.05rem;
+}
+
+.row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-sub {
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+}
+
+.row:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.row:hover:not(:disabled) .row-sub,
+.row:hover:not(:disabled) .muted {
+  color: var(--canvas);
+}
+
+/* Ghost action button that sits flush inside a row strip. */
+.row-action {
+  border: none;
+  border-left: var(--hair) solid var(--separator);
+  background: transparent;
+  color: var(--ink-muted);
+  padding: 0 0.8rem;
+  align-self: stretch;
+}
+
+.row-action:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.row-action.destructive {
+  border: none;
+  border-left: var(--hair) solid var(--separator);
+  color: var(--ink-muted);
+}
+
+.row-action.destructive:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--canvas);
 }
 
 .banner {
-  background: transparent;
+  border: var(--edge) solid var(--danger);
   color: var(--danger);
-  border: 1.5px solid var(--danger);
-  border-left-width: 4px;
-  border-radius: var(--radius-sm);
-  padding: 0.8rem 1rem;
-  margin: 1rem 0;
-  font-size: 0.92rem;
+  background: var(--paper);
+  padding: 0.6rem 0.75rem;
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+}
+
+.banner::before {
+  content: "! ";
+  font-weight: 700;
 }
 
 .banner.info {
-  border-color: var(--accent);
+  border-color: var(--ink);
   color: var(--ink);
 }
 
+.banner.info::before {
+  content: "? ";
+}
+
 .field {
-  margin-bottom: 1rem;
+  display: grid;
+  gap: 0.3rem;
 }
 
 .field > label {
-  display: block;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  margin: 0 0 0.35rem 0;
+  letter-spacing: 0.02em;
   color: var(--ink-muted);
+}
+
+/* Frontmatter keys are shown as keys: `title:`, not as prose labels. */
+.field > label::after {
+  content: ":";
 }
 
 .checkbox-row {
@@ -360,26 +538,21 @@ summary {
   gap: 0.5rem;
 }
 
-.checkbox-row input {
-  width: auto;
-  accent-color: var(--accent);
-}
-
 .chip {
   display: inline-block;
-  padding: 0.18rem 0.65rem;
-  border: 1px solid var(--separator);
-  border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  padding: 0.12rem 0.4rem;
+  border: var(--hair) solid var(--separator);
+  font-size: 0.7rem;
   background: transparent;
   color: var(--ink-muted);
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 a.chip:hover {
+  background: var(--ink);
   border-color: var(--ink);
-  color: var(--ink);
+  color: var(--canvas);
 }
 
 .icon {
@@ -387,4 +560,59 @@ a.chip:hover {
   height: 1em;
   fill: currentColor;
   vertical-align: -0.12em;
+}
+
+/* --- Dropdown menus: one hard offset shadow, no blur, no fade --- */
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.menu-panel {
+  position: absolute;
+  top: 100%;
+  z-index: 50;
+  min-width: 210px;
+  max-height: 300px;
+  overflow: auto;
+  background: var(--paper);
+  border: var(--edge) solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.menu-item {
+  display: grid;
+  gap: 0.05rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.menu-item + .menu-item {
+  border-top: var(--hair) solid var(--separator);
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.menu-item:disabled {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+  }
 }

@@ -16,28 +16,22 @@ import { type Palette, setPalette, theme } from "@/stores/theme";
 
 const PALETTES: Array<{ id: Palette; name: string; light: string[]; dark: string[] }> = [
   {
-    id: "classic",
-    name: "Classic",
-    light: ["#faf9f5", "#ffffff", "#2447e0"],
-    dark: ["#101828", "#182233", "#6e9bff"],
+    id: "blueprint",
+    name: "blueprint",
+    light: ["#e7e8ea", "#101114", "#1b3dff"],
+    dark: ["#131418", "#e9eaee", "#6c8cff"],
   },
   {
-    id: "warm",
-    name: "Warm",
-    light: ["#f6f1e7", "#fdfaf2", "#b45309"],
-    dark: ["#1c1610", "#271f16", "#e8a04c"],
+    id: "riso",
+    name: "riso",
+    light: ["#e8e4f2", "#161320", "#e0186a"],
+    dark: ["#141221", "#eee9ff", "#ff5c96"],
   },
   {
-    id: "forest",
-    name: "Forest",
-    light: ["#eff5f0", "#ffffff", "#1e7a46"],
-    dark: ["#0e1c14", "#16271d", "#43c878"],
-  },
-  {
-    id: "graphite",
-    name: "Graphite",
-    light: ["#f2f3f5", "#ffffff", "#464f9e"],
-    dark: ["#17191d", "#21242a", "#8ea6ff"],
+    id: "carbon",
+    name: "carbon",
+    light: ["#ededed", "#000000", "#5c5c5c"],
+    dark: ["#101010", "#f2f2f2", "#9a9a9a"],
   },
 ];
 
