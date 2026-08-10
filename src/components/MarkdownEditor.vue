@@ -64,24 +64,61 @@ defineExpose({ insertSnippet });
 </template>
 
 <style scoped>
-/* Editorial sheet: paper with an ink rule, square edges. */
+/* The one soft surface in the app: chrome is mono, the writing is not. */
 .md-editor {
   background: var(--paper);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  min-height: 70vh;
+  border: var(--edge) solid var(--ink);
+  min-height: 68vh;
   overflow: hidden;
 }
 
+/* Crepe ships its own palette; point its variables at ours so the sheet
+   belongs to the app and keeps following theme and palette changes. */
 .md-editor :deep(.milkdown) {
-  padding: 2rem 2.25rem;
-  font-size: 1.02rem;
-  line-height: 1.65;
+  --crepe-color-background: var(--paper);
+  --crepe-color-on-background: var(--ink);
+  --crepe-color-surface: var(--paper);
+  --crepe-color-surface-low: var(--fill);
+  --crepe-color-on-surface: var(--ink);
+  --crepe-color-on-surface-variant: var(--ink-muted);
+  --crepe-color-outline: var(--separator);
+  --crepe-color-primary: var(--accent);
+  --crepe-color-secondary: var(--fill-strong);
+  --crepe-color-on-secondary: var(--ink);
+  --crepe-color-inverse: var(--ink);
+  --crepe-color-on-inverse: var(--canvas);
+  --crepe-color-inline-code: var(--mark);
+  --crepe-color-error: var(--danger);
+  --crepe-color-hover: var(--fill);
+  --crepe-color-selected: var(--fill-strong);
+  --crepe-color-inline-area: var(--fill);
+  --crepe-font-title: var(--font-prose);
+  --crepe-font-default: var(--font-prose);
+  --crepe-font-code: var(--font-mono);
+  --crepe-shadow-1: none;
+  --crepe-shadow-2: none;
+
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* Crepe reserves 120px side gutters for block handles; 3rem is enough and
+   keeps the measure where a reader wants it. */
+.md-editor :deep(.ProseMirror) {
+  max-width: 78ch;
+  padding: 1.75rem 3rem 3rem;
+}
+
+.md-editor :deep(h1),
+.md-editor :deep(h2),
+.md-editor :deep(h3) {
+  letter-spacing: -0.02em;
 }
 
 @media (max-width: 640px) {
   .md-editor :deep(.milkdown) {
-    padding: 1.25rem 1.1rem;
+    padding: 1.1rem 1rem;
   }
 }
 </style>

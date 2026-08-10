@@ -4,10 +4,11 @@ import { useRoute, useRouter } from "vue-router";
 import MarkdownEditor from "@/components/MarkdownEditor.vue";
 import MetadataPanel from "@/components/MetadataPanel.vue";
 import PushDialog from "@/components/PushDialog.vue";
+import type { StatusItem } from "@/components/StatusLine.vue";
+import StatusLine from "@/components/StatusLine.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import { CMS_CONFIG } from "@/config";
 import { parsePost, serializePost } from "@/lib/frontmatter";
-import { permalinkFor } from "@/lib/repoconfig";
 import { draftBranchFor, kebab } from "@/lib/slug";
 import { applyTemplate, DEFAULT_COMMIT_TEMPLATE } from "@/lib/template";
 import { githubClient } from "@/stores/auth";
@@ -74,24 +75,13 @@ function insertComponent(text: string): void {
   editorRef.value?.insertSnippet(text);
   insertOpen.value = false;
 }
-const permalink = computed(() =>
-  cfg.value ? permalinkFor(cfg.value.urlTemplate, slug.value) : "",
-);
-
 const branchUrl = computed(() =>
   target.value
     ? `https://github.com/${target.value.owner}/${target.value.repo}/tree/${encodeURIComponent(state.branch)}`
     : "#",
 );
 
-const crumbs = computed(() => {
-  const r = target.value;
-  if (!r || !state.repoPath) return "";
-  const rel = state.repoPath.startsWith(`${r.contentPath}/`)
-    ? state.repoPath.slice(r.contentPath.length + 1)
-    : state.repoPath;
-  return `${r.owner}/${r.repo} | ${rel}`;
-});
+const crumbs = computed(() => state.repoPath);
 
 function defaultCommitMessage(): string {
   const tpl = settings.commitTemplate || cfg.value?.commitTemplate || DEFAULT_COMMIT_TEMPLATE;
@@ -286,28 +276,54 @@ async function openPr(): Promise<void> {
   }
 }
 
+const clock = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
 const statusLabel = computed(() => {
   switch (state.status) {
     case "pushing":
-      return "Pushing...";
+      return "pushing to the branch";
     case "pushed":
-      return state.pushedAt
-        ? `Pushed ${state.pushedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-        : "Pushed";
+      return state.pushedAt ? `pushed ${clock(state.pushedAt)}` : "pushed";
     case "local":
       return state.localSavedAt
-        ? `Saved locally ${state.localSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-        : "Saved locally";
+        ? `saved here ${clock(state.localSavedAt)}`
+        : "saved in this browser";
     case "error":
-      return "Push failed";
+      return "push failed";
     default:
-      return "No changes";
+      return "no changes";
   }
 });
+
+const statusTone = computed<StatusItem["tone"]>(() => {
+  switch (state.status) {
+    case "pushed":
+      return "ok";
+    case "local":
+    case "pushing":
+      return "busy";
+    case "error":
+      return "error";
+    default:
+      return "muted";
+  }
+});
+
+const statusItems = computed<StatusItem[]>(() => [
+  {
+    label: "repo",
+    value: target.value ? `${target.value.owner}/${target.value.repo}` : "none",
+  },
+  { label: "branch", value: state.branch, href: branchUrl.value },
+  { value: statusLabel.value, tone: statusTone.value },
+  ...(onDefaultBranch.value
+    ? [{ value: "commits publish straight away", tone: "muted" as const }]
+    : []),
+]);
 </script>
 
 <template>
-  <div class="page editor-page">
+  <div class="page">
     <p v-if="state.loading" class="muted">Loading...</p>
     <div v-else-if="state.loadError" class="banner">
       {{ state.loadError }}. On a private repo, sign out and sign in again so your token gets the repo scope.
@@ -316,27 +332,16 @@ const statusLabel = computed(() => {
 
     <template v-else-if="cfg">
       <div class="topbar">
-        <button class="back-btn" @click="void router.push('/posts')">
-          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M10.354 3.146a.5.5 0 0 1 0 .708L6.207 8l4.147 4.146a.5.5 0 0 1-.708.708l-4.5-4.5a.5.5 0 0 1 0-.708l4.5-4.5a.5.5 0 0 1 .708 0z"
-            />
-          </svg>
-          Posts
-        </button>
+        <button class="quiet back-btn" @click="void router.push('/posts')">Posts</button>
         <span class="crumbs muted" :title="crumbs">{{ crumbs }}</span>
-        <a class="chip" :href="branchUrl" target="_blank" rel="noreferrer">{{ state.branch }}</a>
-        <span class="status" :class="`status-${state.status}`">
-          <span class="dot" aria-hidden="true" />{{ statusLabel }}
-        </span>
         <div v-if="cfg.components.length" class="insert-menu">
-          <button class="insert-btn" :aria-expanded="insertOpen" @click="insertOpen = !insertOpen">Insert</button>
-          <div v-if="insertOpen" class="insert-backdrop" @click="insertOpen = false" />
-          <div v-if="insertOpen" class="insert-panel">
+          <button class="quiet" :aria-expanded="insertOpen" @click="insertOpen = !insertOpen">Insert</button>
+          <div v-if="insertOpen" class="menu-backdrop" @click="insertOpen = false" />
+          <div v-if="insertOpen" class="menu-panel insert-panel">
             <button
               v-for="c in cfg.components"
               :key="c.name"
-              class="insert-item"
+              class="menu-item"
               :title="c.description ?? c.name"
               @click="insertComponent(c.insert)"
             >
@@ -346,7 +351,9 @@ const statusLabel = computed(() => {
           </div>
         </div>
         <ThemeToggle />
-        <button class="push-btn" :disabled="!dirty || state.status === 'pushing'" @click="requestPush">Push</button>
+        <button class="push-btn" :disabled="!dirty || state.status === 'pushing'" @click="requestPush">
+          {{ state.status === "pushing" ? "Pushing" : "Push" }}
+        </button>
         <button
           v-if="!onDefaultBranch"
           class="primary pr-btn"
@@ -355,18 +362,19 @@ const statusLabel = computed(() => {
         >
           {{ state.prUrl ? "View PR" : "Open PR" }}
         </button>
-        <span v-else class="chip" title="Commits go straight to the default branch">default branch</span>
       </div>
 
       <div v-if="state.status === 'error'" class="banner">{{ state.error }}</div>
       <div v-else-if="state.hasLocalDraft" class="banner info">
-        Restored a local draft{{ state.localSavedAt ? ` from ${state.localSavedAt.toLocaleString()}` : "" }}. Push to
-        save it, or
-        <button class="link-btn" @click="discardLocalDraft">discard local changes</button>.
+        Picked up the local draft{{ state.localSavedAt ? ` saved ${state.localSavedAt.toLocaleString()}` : "" }}.
+        Push it to the branch, or
+        <button class="link-btn" @click="discardLocalDraft">throw the local changes away</button>.
       </div>
 
       <MetadataPanel v-model="state.fm" :fields="cfg.fields" :slug="slug" :url-template="cfg.urlTemplate" />
       <MarkdownEditor ref="editorRef" v-model="state.body" />
+
+      <StatusLine mode="edit" :items="statusItems" />
 
       <PushDialog
         :open="showPushDialog"
@@ -392,47 +400,17 @@ const statusLabel = computed(() => {
   flex-shrink: 0;
 }
 
+.back-btn::before {
+  content: "<- ";
+}
+
 .crumbs {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-mono);
   font-size: 0.78rem;
-}
-
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
-  white-space: nowrap;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ink-muted);
-}
-
-.status-local .dot,
-.status-pushing .dot {
-  background: var(--accent);
-}
-
-.status-pushed .dot {
-  background: var(--ok);
-}
-
-.status-error .dot {
-  background: var(--danger);
-}
-
-.status-error {
-  color: var(--danger);
 }
 
 .pr-btn,
@@ -445,64 +423,37 @@ const statusLabel = computed(() => {
   flex-shrink: 0;
 }
 
-.insert-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-}
-
 .insert-panel {
-  position: absolute;
   right: 0;
-  top: calc(100% + 6px);
-  z-index: 50;
-  min-width: 220px;
-  background: var(--paper);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 0.35rem;
-  display: grid;
-  gap: 0.15rem;
-}
-
-.insert-item {
-  display: grid;
-  gap: 0.1rem;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.7rem;
-}
-
-.insert-item:hover:not(:disabled) {
-  background: var(--fill);
-}
-
-.insert-item:active:not(:disabled) {
-  transform: none;
 }
 
 .insert-label {
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .insert-desc {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--ink-muted);
+}
+
+.menu-item:hover .insert-desc {
+  color: var(--canvas);
 }
 
 .link-btn {
   background: transparent;
   border: none;
   padding: 0;
+  font-size: inherit;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--accent);
   text-decoration: underline;
-  border-radius: var(--radius-sm);
 }
 
-.link-btn:active:not(:disabled) {
-  transform: none;
+.link-btn:hover:not(:disabled) {
+  background: transparent;
+  color: var(--ink);
 }
 </style>

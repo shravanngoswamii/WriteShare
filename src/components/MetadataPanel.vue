@@ -35,131 +35,138 @@ const pubDate = computed(() => {
 <template>
   <div class="panel">
     <button class="summary" :aria-expanded="open" @click="open = !open">
-      <span class="summary-text">
-        <span class="summary-title">{{ title }}</span>
-        <span class="summary-chips">
-          <span v-if="pubDate" class="chip">{{ pubDate }}</span>
-          <span v-if="isDraft" class="chip">draft</span>
-          <span v-for="c in categories" :key="c" class="chip">{{ c }}</span>
-        </span>
-      </span>
-      <span class="toggle-row">
-        <span class="muted small">{{ open ? "Hide metadata" : "Metadata" }}</span>
-        <svg class="icon chevron" :class="{ flipped: open }" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M3.646 5.646a.5.5 0 0 1 .708 0L8 9.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z" />
-        </svg>
-      </span>
+      <span class="fence" aria-hidden="true">---</span>
+      <span class="summary-title">{{ title }}</span>
+      <span v-if="pubDate" class="chip">{{ pubDate }}</span>
+      <span v-if="isDraft" class="chip">draft</span>
+      <span v-for="c in categories" :key="c" class="chip">{{ c }}</span>
+      <span class="gap" />
+      <span class="toggle">{{ open ? "hide frontmatter" : "frontmatter" }}</span>
     </button>
 
     <div v-show="open" class="details">
-      <div class="form-col">
-        <FrontmatterForm :fields="fields" :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)" />
-      </div>
+      <FrontmatterForm
+        class="form-col"
+        :fields="fields"
+        :model-value="modelValue"
+        @update:model-value="emit('update:modelValue', $event)"
+      />
 
       <div class="preview-col">
         <template v-if="permalink">
-          <p class="muted small">Permalink</p>
+          <p class="label">permalink</p>
           <a class="permalink" :href="permalink" target="_blank" rel="noreferrer">{{ permalink }}</a>
           <div class="og-card">
             <p class="og-title">{{ title }}</p>
-            <p class="og-desc" :class="{ muted: !description }">{{ description || "No description yet." }}</p>
-            <p class="og-site muted small">{{ domain }}</p>
+            <p class="og-desc" :class="{ muted: !description }">{{ description || "no description yet" }}</p>
+            <p class="og-site">{{ domain }}</p>
           </div>
         </template>
-        <p v-else class="muted small">Set a preview URL template in the repo settings to see the permalink here.</p>
+        <p v-else class="hint">
+          add a preview URL template in repo settings and the permalink shows up here.
+        </p>
       </div>
     </div>
+    <div v-show="open" class="fence-end" aria-hidden="true">---</div>
   </div>
 </template>
 
 <style scoped>
 .panel {
-  background: transparent;
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
+  border: var(--edge) solid var(--ink);
+  border-bottom: none;
+  background: var(--paper);
 }
 
 .summary {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.8rem 1.15rem;
+  padding: 0.55rem 0.7rem;
   text-align: left;
+  font-size: 0.855rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
-.summary:active:not(:disabled) {
-  transform: none;
+.summary:hover:not(:disabled) {
+  background: transparent;
 }
 
-.summary-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+.summary:hover .toggle {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.fence,
+.fence-end {
+  color: var(--ink-muted);
+  letter-spacing: 0.1em;
+}
+
+.fence-end {
+  padding: 0 0.7rem 0.55rem;
+  font-size: 0.855rem;
 }
 
 .summary-title {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 46ch;
 }
 
-.summary-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+.gap {
+  flex: 1;
 }
 
-.toggle-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+.toggle {
   flex-shrink: 0;
-}
-
-.chevron {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--ink-muted);
-  transition: transform 0.15s ease;
-}
-
-.chevron.flipped {
-  transform: rotate(180deg);
+  border: var(--hair) solid var(--separator);
 }
 
 .details {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 1.25rem;
-  padding: 0 1.15rem 1.15rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  padding: 0.35rem 0.7rem 0.8rem;
 }
 
 .permalink {
+  display: inline-block;
+  margin-bottom: 0.75rem;
   word-break: break-all;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
 }
 
 .og-card {
-  margin-top: 0.75rem;
-  background: transparent;
-  border: 1.5px solid var(--separator);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
+  border: var(--hair) solid var(--separator);
+  padding: 0.7rem;
 }
 
 .og-title {
-  margin: 0 0 0.3rem;
+  margin: 0 0 0.25rem;
+  font-family: var(--font-prose);
   font-weight: 700;
   line-height: 1.3;
 }
 
 .og-desc {
   margin: 0 0 0.5rem;
-  font-size: 0.9rem;
+  font-family: var(--font-prose);
+  font-size: 0.85rem;
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -169,12 +176,14 @@ const pubDate = computed(() => {
 
 .og-site {
   margin: 0;
-  text-transform: lowercase;
+  font-size: 0.72rem;
+  color: var(--ink-muted);
 }
 
 @media (max-width: 880px) {
   .details {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 </style>

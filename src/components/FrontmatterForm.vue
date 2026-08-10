@@ -69,10 +69,10 @@ function onCheck(e: Event): boolean {
 </script>
 
 <template>
-  <div>
+  <div class="form">
     <div v-for="field in fields" :key="field.name" class="field">
-      <label :for="`fm-${field.name}`">
-        {{ field.label }}<span v-if="field.required" class="req"> *</span>
+      <label :for="`fm-${field.name}`" :title="field.required ? `${field.label} (required)` : field.label">
+        <span v-if="field.required" class="req">*</span>{{ field.name }}
       </label>
 
       <input
@@ -99,23 +99,14 @@ function onCheck(e: Event): boolean {
         @input="set(field.name, localInputToIso(onInput($event)))"
       />
 
-      <label v-else-if="field.type === 'boolean'" class="switch-row" :for="`fm-${field.name}`">
-        <span
-          class="switch"
-          :class="{ on: asBool(modelValue[field.name]) }"
-          role="switch"
-          :aria-checked="asBool(modelValue[field.name])"
-        >
-          <input
-            :id="`fm-${field.name}`"
-            class="switch-input"
-            type="checkbox"
-            :checked="asBool(modelValue[field.name])"
-            @change="set(field.name, onCheck($event))"
-          />
-          <span class="knob" />
-        </span>
-        <span class="muted small">{{ asBool(modelValue[field.name]) ? "Yes" : "No" }}</span>
+      <label v-else-if="field.type === 'boolean'" class="checkbox-row bool-row" :for="`fm-${field.name}`">
+        <input
+          :id="`fm-${field.name}`"
+          type="checkbox"
+          :checked="asBool(modelValue[field.name])"
+          @change="set(field.name, onCheck($event))"
+        />
+        <span class="bool-value">{{ asBool(modelValue[field.name]) }}</span>
       </label>
 
       <input
@@ -145,89 +136,47 @@ function onCheck(e: Event): boolean {
 </template>
 
 <style scoped>
+.form {
+  display: grid;
+  gap: 0.6rem;
+}
+
 .req {
   color: var(--danger);
 }
 
-/* iOS-style toggle switch */
-.switch-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+.bool-row {
   cursor: pointer;
+  padding: 0.15rem 0;
 }
 
-.switch {
-  position: relative;
-  width: 46px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--ink-muted);
-  background: transparent;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
-  display: inline-block;
+.bool-value {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
 }
 
-.switch.on {
-  background: var(--ink);
-  border-color: var(--ink);
-}
-
-.switch-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  margin: 0;
-  cursor: pointer;
-  width: 100%;
-}
-
-.knob {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 18px;
-  height: 18px;
-  border-radius: 1px;
-  background: var(--ink-muted);
-  transition:
-    transform 0.2s ease,
-    background-color 0.2s ease;
-  pointer-events: none;
-}
-
-.switch.on .knob {
-  transform: translateX(18px);
-  background: var(--canvas);
-}
-
-/* Apple-style selection chips for enums */
 .chip-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 
 .toggle-chip {
-  padding: 0.3rem 0.85rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  border-width: var(--hair);
   border-color: var(--separator);
   background: transparent;
-  color: var(--ink);
+  color: var(--ink-muted);
 }
 
 .toggle-chip.active {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--canvas);
-}
-
-.toggle-chip:hover:not(:disabled) {
-  background: var(--fill-strong);
 }
 
 .toggle-chip.active:hover:not(:disabled) {
