@@ -18,26 +18,26 @@ const PALETTES: Array<{ id: Palette; name: string; light: string[]; dark: string
   {
     id: "classic",
     name: "Classic",
-    light: ["#f4f4f6", "#ffffff", "#0071e3"],
-    dark: ["#101d2b", "#17293c", "#2f96ff"],
+    light: ["#faf9f5", "#ffffff", "#2447e0"],
+    dark: ["#101828", "#182233", "#6e9bff"],
   },
   {
     id: "warm",
     name: "Warm",
-    light: ["#f7f3ec", "#fdfbf5", "#b45309"],
-    dark: ["#1c1712", "#28211a", "#e8a04c"],
+    light: ["#f6f1e7", "#fdfaf2", "#b45309"],
+    dark: ["#1c1610", "#271f16", "#e8a04c"],
   },
   {
     id: "forest",
     name: "Forest",
-    light: ["#f0f5f1", "#ffffff", "#1e7a46"],
-    dark: ["#0f1d15", "#17281e", "#43c878"],
+    light: ["#eff5f0", "#ffffff", "#1e7a46"],
+    dark: ["#0e1c14", "#16271d", "#43c878"],
   },
   {
     id: "graphite",
     name: "Graphite",
-    light: ["#f3f4f6", "#ffffff", "#455a9e"],
-    dark: ["#181a1e", "#22252b", "#7d97f4"],
+    light: ["#f2f3f5", "#ffffff", "#464f9e"],
+    dark: ["#17191d", "#21242a", "#8ea6ff"],
   },
 ];
 
@@ -227,9 +227,9 @@ function manage(index: number): void {
 }
 
 .grouped {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  background: transparent;
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
 }
 
 .repo-row {
@@ -249,6 +249,7 @@ function manage(index: number): void {
   width: 100%;
   text-align: left;
   background: transparent;
+  border: none;
   border-radius: 0;
   padding: 0.85rem 1.15rem;
 }
@@ -299,6 +300,7 @@ function manage(index: number): void {
 
 .remove-btn,
 .manage-btn {
+  border: none;
   border-radius: 0;
   background: transparent;
   color: var(--ink-muted);
@@ -316,8 +318,9 @@ function manage(index: number): void {
 }
 
 .composer {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
   padding: 1rem;
   display: grid;
   gap: 0.6rem;
@@ -343,16 +346,18 @@ function manage(index: number): void {
   gap: 0.45rem;
   justify-items: center;
   padding: 0.7rem 0.5rem;
-  border-radius: var(--radius-md);
-  background: var(--fill);
+  border-radius: var(--radius-sm);
+  border-color: var(--separator);
+  background: transparent;
 }
 
 .palette-card:hover:not(:disabled) {
-  background: var(--fill-strong);
+  background: var(--fill);
 }
 
 .palette-card.active {
-  box-shadow: 0 0 0 2px var(--accent);
+  border-color: var(--accent);
+  box-shadow: none;
 }
 
 .swatches {

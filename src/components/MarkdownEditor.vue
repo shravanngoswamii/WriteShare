@@ -64,10 +64,11 @@ defineExpose({ insertSnippet });
 </template>
 
 <style scoped>
-/* Borderless "paper on canvas": radius + tonal contrast separate it. */
+/* Editorial sheet: paper with an ink rule, square edges. */
 .md-editor {
   background: var(--paper);
-  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
   min-height: 70vh;
   overflow: hidden;
 }

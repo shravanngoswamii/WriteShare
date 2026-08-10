@@ -74,8 +74,9 @@ const pubDate = computed(() => {
 
 <style scoped>
 .panel {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
 }
 
 .summary {
@@ -84,7 +85,8 @@ const pubDate = computed(() => {
   align-items: center;
   gap: 0.75rem;
   background: transparent;
-  border-radius: var(--radius-lg);
+  border: none;
+  border-radius: var(--radius-sm);
   padding: 0.8rem 1.15rem;
   text-align: left;
 }
@@ -143,8 +145,9 @@ const pubDate = computed(() => {
 
 .og-card {
   margin-top: 0.75rem;
-  background: var(--fill);
-  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1.5px solid var(--separator);
+  border-radius: var(--radius-sm);
   padding: 1rem;
 }
 

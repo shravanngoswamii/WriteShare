@@ -161,14 +161,18 @@ function onCheck(e: Event): boolean {
   position: relative;
   width: 46px;
   height: 28px;
-  border-radius: 999px;
-  background: var(--fill-strong);
-  transition: background-color 0.2s ease;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--ink-muted);
+  background: transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
   display: inline-block;
 }
 
 .switch.on {
-  background: var(--accent);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .switch-input {
@@ -182,19 +186,21 @@ function onCheck(e: Event): boolean {
 
 .knob {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease;
+  top: 4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 1px;
+  background: var(--ink-muted);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
   pointer-events: none;
 }
 
 .switch.on .knob {
   transform: translateX(18px);
+  background: var(--canvas);
 }
 
 /* Apple-style selection chips for enums */
@@ -205,17 +211,19 @@ function onCheck(e: Event): boolean {
 }
 
 .toggle-chip {
-  padding: 0.35rem 0.9rem;
+  padding: 0.3rem 0.85rem;
   font-size: 0.85rem;
   font-weight: 500;
-  border-radius: 999px;
-  background: var(--fill);
+  border-radius: var(--radius-sm);
+  border-color: var(--separator);
+  background: transparent;
   color: var(--ink);
 }
 
 .toggle-chip.active {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
 }
 
 .toggle-chip:hover:not(:disabled) {
@@ -223,6 +231,8 @@ function onCheck(e: Event): boolean {
 }
 
 .toggle-chip.active:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 </style>

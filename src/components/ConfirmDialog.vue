@@ -47,7 +47,8 @@ function onBackdrop(e: MouseEvent): void {
   width: 100%;
   max-width: 420px;
   background: var(--paper);
-  border-radius: var(--radius-lg);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
 }
 

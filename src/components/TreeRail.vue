@@ -100,15 +100,17 @@ function toggle(path: string): void {
 
 <style scoped>
 .rail {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
-  padding: 0.4rem;
+  background: transparent;
+  padding: 0.25rem 0;
   align-self: start;
   position: sticky;
   top: 4.5rem;
   max-height: calc(100vh - 6rem);
   overflow: auto;
   min-width: 220px;
+  border-right: 1.5px solid var(--separator);
+  margin-right: -0.5rem;
+  padding-right: 1rem;
 }
 
 .rail-row-wrap {
@@ -122,7 +124,8 @@ function toggle(path: string): void {
   align-items: center;
   gap: 0.5rem;
   background: transparent;
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.7rem;
   text-align: left;
   width: 100%;
@@ -133,8 +136,9 @@ function toggle(path: string): void {
 }
 
 .rail-row.active {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  background: transparent;
   color: var(--accent);
+  font-weight: 700;
 }
 
 .rail-row:active:not(:disabled) {
@@ -161,7 +165,8 @@ function toggle(path: string): void {
   width: 22px;
   height: 22px;
   padding: 0;
-  border-radius: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--ink-muted);
   flex-shrink: 0;

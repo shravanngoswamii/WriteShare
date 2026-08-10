@@ -398,7 +398,8 @@ const statusLabel = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
 }
 
 .status {
@@ -457,8 +458,8 @@ const statusLabel = computed(() => {
   z-index: 50;
   min-width: 220px;
   background: var(--paper);
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
   padding: 0.35rem;
   display: grid;
   gap: 0.15rem;
@@ -469,6 +470,7 @@ const statusLabel = computed(() => {
   gap: 0.1rem;
   text-align: left;
   background: transparent;
+  border: none;
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.7rem;
 }
@@ -493,10 +495,11 @@ const statusLabel = computed(() => {
 
 .link-btn {
   background: transparent;
+  border: none;
   padding: 0;
   color: var(--accent);
   text-decoration: underline;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .link-btn:active:not(:disabled) {

@@ -275,8 +275,8 @@ function signOut(): void {
   max-height: 300px;
   overflow: auto;
   background: var(--paper);
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
   padding: 0.35rem;
   display: grid;
   gap: 0.15rem;
@@ -288,6 +288,7 @@ function signOut(): void {
   gap: 0.5rem;
   text-align: left;
   background: transparent;
+  border: none;
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.7rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -320,6 +321,10 @@ function signOut(): void {
   color: var(--ink-muted);
 }
 
+.fab {
+  border-radius: var(--radius-sm);
+}
+
 .explorer {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -348,7 +353,7 @@ function signOut(): void {
 
 .search {
   padding-left: 2.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
 }
 
 .new-btn {
@@ -356,8 +361,9 @@ function signOut(): void {
 }
 
 .composer {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
   padding: 1rem;
   margin-bottom: 1rem;
   display: grid;
@@ -380,9 +386,9 @@ function signOut(): void {
 }
 
 .grouped {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  background: transparent;
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
 }
 
 .row {
@@ -392,8 +398,9 @@ function signOut(): void {
   width: 100%;
   text-align: left;
   background: transparent;
+  border: none;
   border-radius: 0;
-  padding: 0.85rem 1.15rem;
+  padding: 0.85rem 0.4rem;
   transition: background-color 0.1s ease;
 }
 

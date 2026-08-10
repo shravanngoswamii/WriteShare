@@ -150,9 +150,11 @@ function useOAuth(): void {
 
 h1 {
   margin: 0 0 0.35rem;
-  font-size: 1.9rem;
+  font-family: var(--font-display);
+  font-size: 2.6rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 .tagline {
@@ -170,22 +172,16 @@ h1 {
   padding: 0.85rem 1.25rem;
   font-size: 1rem;
   font-weight: 600;
-  background: #1d1d1f;
-  color: #ffffff;
-  border-radius: 999px;
-}
-
-[data-theme="dark"] .github-btn {
-  background: #f5f5f7;
-  color: #1d1d1f;
+  background: var(--ink);
+  color: var(--canvas);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
 }
 
 .github-btn:hover:not(:disabled) {
-  background: #333336;
-}
-
-[data-theme="dark"] .github-btn:hover:not(:disabled) {
-  background: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .oauth-note {

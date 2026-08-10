@@ -308,28 +308,40 @@ async function doClosePr(prNumber: number): Promise<void> {
 }
 
 .tabs {
-  display: inline-flex;
-  gap: 0.25rem;
-  background: var(--fill);
-  border-radius: 999px;
-  padding: 0.25rem;
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1.5px solid var(--ink);
   margin-bottom: 1.25rem;
 }
 
 .tabs button {
-  border-radius: 999px;
+  border: none;
+  border-radius: 0;
   background: transparent;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 0.6rem 0.1rem;
+  margin-bottom: -1.5px;
+  border-bottom: 2px solid transparent;
+}
+
+.tabs button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--ink);
 }
 
 .tabs button.active {
-  background: var(--paper);
-  font-weight: 600;
+  color: var(--ink);
+  border-bottom-color: var(--accent);
 }
 
 .card {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
   padding: 1.25rem;
   max-width: 640px;
 }
@@ -347,9 +359,9 @@ async function doClosePr(prNumber: number): Promise<void> {
 }
 
 .grouped {
-  background: var(--paper);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  background: transparent;
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
   max-width: 820px;
 }
 
@@ -368,6 +380,7 @@ async function doClosePr(prNumber: number): Promise<void> {
   align-items: center;
   gap: 0.75rem;
   background: transparent;
+  border: none;
   border-radius: 0;
   padding: 0.85rem 1.15rem;
   text-align: left;
@@ -400,9 +413,20 @@ async function doClosePr(prNumber: number): Promise<void> {
 
 .remove-btn,
 .merge-btn {
+  border: none;
   border-radius: 0;
   background: transparent;
   padding: 0 1rem;
+  align-self: center;
+}
+
+.merge-btn {
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  border-left: none;
+  border-right: none;
+  margin: 0.6rem 0;
+  padding: 0.35rem 0.9rem;
   align-self: center;
 }
 
@@ -424,11 +448,11 @@ async function doClosePr(prNumber: number): Promise<void> {
 }
 
 .pr .merge-panel {
-  border-top: 1px solid var(--separator);
+  border-top: 1.5px solid var(--ink);
   padding: 1rem 1.15rem;
   display: grid;
   gap: 0.75rem;
-  background: var(--fill);
+  background: transparent;
 }
 
 .merge-options {
