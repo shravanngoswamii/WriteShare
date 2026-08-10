@@ -75,7 +75,7 @@ function onBackdrop(e: MouseEvent): void {
   max-width: 480px;
   background: var(--paper);
   border: var(--edge) solid var(--ink);
-  box-shadow: 6px 6px 0 var(--ink);
+  box-shadow: 6px 6px 0 var(--accent);
   padding: 0.9rem;
 }
 
