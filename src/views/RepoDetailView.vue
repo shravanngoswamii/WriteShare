@@ -353,6 +353,7 @@ async function doClosePr(prNumber: number): Promise<void> {
 
 .tabs {
   display: flex;
+  overflow-x: auto;
   border: var(--edge) solid var(--ink);
   border-bottom: none;
   max-width: 820px;
@@ -364,6 +365,7 @@ async function doClosePr(prNumber: number): Promise<void> {
   background: transparent;
   color: var(--ink-muted);
   padding: 0.5rem 0.9rem;
+  white-space: nowrap;
 }
 
 .tabs button:last-of-type {

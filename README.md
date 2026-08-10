@@ -13,7 +13,7 @@ A serverless, Markdown-native writing desk for GitHub-backed blogs (Astro, Next,
 
 1. Sign in with GitHub (or paste a token).
 2. Repositories screen: add any repo as `owner/repo` and point it at a content path (default `src/content/blog`); its default branch is detected automatically.
-3. Posts screen: folder tree on the left, files on the right, dot marks unsaved local drafts. Compose or open one.
+3. Posts screen: folder tree on the left, files on the right, `*` marks unsaved local drafts. Compose or open one.
 4. Editor: metadata in a collapsible top bar with permalink preview, body is WYSIWYG. Every edit is saved to the browser immediately. **Push** opens a dialog with an editable commit message (template-driven) and commits to `draft/<slug>`; **Open PR** publishes the review.
 5. Repo > Manage: settings (content path, preview URL template, commit template), draft branch cleanup, and pull request merge (squash default, delete-branch-after-merge) or close.
 
