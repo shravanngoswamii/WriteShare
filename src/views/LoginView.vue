@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
-import StatusLine from "@/components/StatusLine.vue";
 import { CMS_CONFIG } from "@/config";
 import { auth, beginOAuth, completeOAuth, githubClient, logout, setToken } from "@/stores/auth";
 
@@ -73,17 +72,17 @@ function useOAuth(): void {
   <div class="login-page">
     <div class="login-hero">
       <div class="masthead">
-        <img class="logo" :src="`${$baseUrl}favicon.svg`" alt="" width="40" height="40" />
-        <h1>writeshare<span class="caret" aria-hidden="true" /></h1>
+        <img class="logo" :src="`${$baseUrl}favicon.svg`" alt="" width="44" height="44" />
+        <h1>WriteShare</h1>
       </div>
 
-      <p class="hint tagline">
-        every post is a commit in your own repo. drafts live on branches, publishing is a pull request.
+      <p class="tagline">
+        A quiet writing desk for a GitHub-backed blog. Every post is a commit in your own repository:
+        drafts live on branches, publishing is a pull request.
       </p>
 
-      <h2 class="section-title">sign in</h2>
       <div class="auth">
-        <p v-if="st.busy" class="muted small">checking session...</p>
+        <p v-if="st.busy" class="muted small">Checking your session...</p>
 
         <template v-else>
           <button v-if="oauthConfigured" class="primary github-btn" @click="useOAuth">
@@ -95,15 +94,16 @@ function useOAuth(): void {
             Sign in with GitHub
           </button>
 
-          <p v-else class="hint">
-            one-click sign-in isn't wired up yet (README, OAuth section). a personal access token works now.
+          <p v-else class="hint no-oauth">
+            One-click sign-in isn't set up yet (see the README's OAuth section). A personal access token
+            works today.
           </p>
 
           <details class="pat" :open="!oauthConfigured">
-            <summary>token instead</summary>
+            <summary>Use a personal access token</summary>
             <div class="pat-body">
               <div class="field">
-                <label for="pat">token</label>
+                <label for="pat">Token</label>
                 <input
                   id="pat"
                   v-model="st.pat"
@@ -119,16 +119,14 @@ function useOAuth(): void {
             </div>
           </details>
 
-          <div v-if="st.error" class="banner">{{ st.error }}</div>
+          <div v-if="st.error" class="notice"><span>{{ st.error }}</span></div>
         </template>
       </div>
 
       <p class="hint outro">
-        the token is kept in this browser and nowhere else. no server, no database.
+        Your token stays in this browser and nowhere else. No server, no database.
       </p>
     </div>
-
-    <StatusLine mode="auth" :items="[{ value: st.busy ? 'checking session' : 'no session', tone: 'muted' }]" />
   </div>
 </template>
 
@@ -138,12 +136,12 @@ function useOAuth(): void {
   display: grid;
   justify-content: center;
   align-content: center;
-  padding: 3rem 1.25rem 4rem;
+  padding: 4rem 1.5rem;
 }
 
 .login-hero {
   width: 100%;
-  max-width: 520px;
+  max-width: 400px;
 }
 
 .masthead {
@@ -154,98 +152,73 @@ function useOAuth(): void {
 
 .logo {
   display: block;
-  width: clamp(38px, 9vw, 52px);
-  height: clamp(38px, 9vw, 52px);
-  border: var(--edge) solid var(--ink);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-mid);
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2.1rem, 11vw, 3.4rem);
-  line-height: 1;
-  letter-spacing: -0.06em;
-}
-
-.caret {
-  display: inline-block;
-  width: 0.5em;
-  height: 1em;
-  margin-left: 0.1em;
-  background: var(--accent);
-  vertical-align: -0.12em;
-  animation: blink 1.1s steps(1, end) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
+  font-size: 1.875rem;
+  font-weight: 400;
+  letter-spacing: -0.025em;
 }
 
 .tagline {
-  margin: 1rem 0 0;
-  max-width: 44ch;
-  line-height: 1.55;
+  margin: 1.5rem 0 2rem;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--ink-soft);
 }
 
 .auth {
   display: grid;
-  gap: 0.7rem;
-  padding: 0.8rem;
+  gap: 1rem;
+  padding: 1.35rem;
   background: var(--paper);
-  border: var(--edge) solid var(--ink);
-}
-
-.outro {
-  margin: 0.9rem 0 0;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-low);
 }
 
 .github-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   padding: 0.7rem 1rem;
-  font-size: 0.8rem;
+  font-size: 0.9375rem;
 }
 
-.pat {
-  border: var(--hair) solid var(--separator);
+.no-oauth {
+  margin: 0;
 }
 
-.pat summary {
+.pat > summary {
   cursor: pointer;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
   color: var(--ink-muted);
   list-style: none;
+  padding: 0.2rem 0;
+  transition: color var(--fast) var(--ease);
 }
 
-.pat summary::marker,
-.pat summary::-webkit-details-marker {
+.pat > summary::marker,
+.pat > summary::-webkit-details-marker {
   display: none;
 }
 
-.pat summary::before {
-  content: "+ ";
-}
-
-.pat[open] summary::before {
-  content: "- ";
-}
-
-.pat summary:hover {
-  background: var(--ink);
-  color: var(--canvas);
+.pat > summary:hover {
+  color: var(--ink);
 }
 
 .pat-body {
   display: grid;
-  gap: 0.6rem;
-  padding: 0.6rem;
-  border-top: var(--hair) solid var(--separator);
+  gap: 0.9rem;
+  padding-top: 1rem;
+}
+
+.outro {
+  margin-top: 1.5rem;
+  padding: 0 0.2rem;
 }
 </style>

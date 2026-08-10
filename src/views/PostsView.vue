@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import type { StatusItem } from "@/components/StatusLine.vue";
-import StatusLine from "@/components/StatusLine.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import TreeRail from "@/components/TreeRail.vue";
 import { auth, githubClient, logout } from "@/stores/auth";
@@ -97,21 +95,6 @@ const scopeHint = computed(() => {
   return "This repo may be private and your token only has public_repo. Sign out and sign in again to grant the repo scope.";
 });
 
-const statusItems = computed<StatusItem[]>(() => {
-  const t = target.value;
-  const items: StatusItem[] = [
-    {
-      label: "repo",
-      value: t ? `${t.owner}/${t.repo}` : "none",
-      href: t ? `https://github.com/${t.owner}/${t.repo}` : undefined,
-    },
-    { label: "branch", value: currentBranch.value },
-  ];
-  const unsaved = entries.value.filter((e) => drafts.value.has(e.path)).length;
-  if (unsaved) items.push({ value: `${unsaved} unsaved`, tone: "busy" });
-  return items;
-});
-
 function openEntry(path: string): void {
   void router.push({
     path: "/edit",
@@ -140,7 +123,11 @@ function signOut(): void {
 <template>
   <div class="page">
     <div class="topbar">
-      <h1 class="large-title">posts</h1>
+      <h1 class="large-title">Posts</h1>
+      <span v-if="target" class="context">
+        <span class="truncate">{{ target.owner }}/{{ target.repo }}</span>
+      </span>
+      <span class="bar-gap" />
       <div class="branch-menu">
         <button
           class="quiet branch-btn"
@@ -148,34 +135,46 @@ function signOut(): void {
           title="Working branch"
           @click="void toggleBranchMenu()"
         >
-          {{ currentBranch }}
+          <span class="truncate">{{ currentBranch }}</span>
+          <svg class="icon caret" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4.22 6.28a.75.75 0 0 1 1.06-.06L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1z" />
+          </svg>
         </button>
         <div v-if="branchMenuOpen" class="menu-backdrop" @click="branchMenuOpen = false" />
         <div v-if="branchMenuOpen" class="menu-panel branch-panel">
           <button class="menu-item" :disabled="!target?.workingBranch" @click="void chooseBranch('')">
             <span class="menu-label">{{ target?.defaultBranch ?? "main" }}</span>
-            <span class="menu-sub">default branch</span>
+            <span class="menu-sub">Default branch</span>
           </button>
-          <p v-if="!draftBranches.length" class="menu-empty">no draft branches yet</p>
+          <p v-if="!draftBranches.length" class="menu-empty">No draft branches yet</p>
           <button v-for="b in draftBranches" :key="b" class="menu-item" @click="void chooseBranch(b)">
             <span class="menu-label">{{ b }}</span>
-            <span v-if="b === target?.workingBranch" class="menu-sub">current</span>
+            <span v-if="b === target?.workingBranch" class="menu-sub">Current</span>
           </button>
         </div>
       </div>
       <button class="quiet" title="Repositories" @click="void router.push('/repos')">Repos</button>
       <ThemeToggle />
+      <img
+        v-if="auth.user"
+        class="avatar"
+        :src="auth.user.avatar_url"
+        :alt="auth.user.login"
+        :title="auth.user.login"
+        width="26"
+        height="26"
+      />
       <button class="quiet" @click="signOut">Sign out</button>
     </div>
 
     <div class="toolbar">
-      <input v-model="filter" class="search" type="search" placeholder="filter files" />
+      <input v-model="filter" class="search" type="search" placeholder="Search posts" />
       <button class="primary" @click="composing = !composing">New post</button>
     </div>
 
     <div v-if="composing" class="block composer">
       <div class="field">
-        <label for="new-title">title</label>
+        <label for="new-title">Title</label>
         <input
           id="new-title"
           v-model="newPost.title"
@@ -186,12 +185,12 @@ function signOut(): void {
         />
       </div>
       <div class="field">
-        <label for="new-folder">folder</label>
+        <label for="new-folder">Folder</label>
         <input
           id="new-folder"
           v-model="newPost.folder"
           type="text"
-          :placeholder="selectedFolder || 'optional'"
+          :placeholder="selectedFolder || 'Optional'"
           list="folders"
           @keydown.enter="createNew"
         />
@@ -205,9 +204,11 @@ function signOut(): void {
       </div>
     </div>
 
-    <div v-if="postsState.error" class="banner">
-      {{ postsState.error }}
-      <span v-if="scopeHint" class="scope-hint">{{ scopeHint }}</span>
+    <div v-if="postsState.error" class="notice">
+      <span>
+        {{ postsState.error }}
+        <span v-if="scopeHint" class="scope-hint">{{ scopeHint }}</span>
+      </span>
     </div>
 
     <div class="explorer">
@@ -219,51 +220,66 @@ function signOut(): void {
         @select="selectedFolder = $event"
       />
 
-      <div class="listing">
+      <div class="grouped listing">
         <button v-for="e in entries" :key="e.path" class="row" @click="openEntry(e.path)">
-          <span class="mark" :class="{ draft: drafts.has(e.path) }" aria-hidden="true">
-            {{ drafts.has(e.path) ? "*" : " " }}
-          </span>
+          <span
+            v-if="drafts.has(e.path)"
+            class="seal"
+            title="Unsaved draft in this browser"
+            aria-label="unsaved draft"
+          />
+          <span v-else class="seal-gap" aria-hidden="true" />
           <span class="row-text">
             <span class="row-name">{{ e.name }}</span>
           </span>
-          <span v-if="drafts.has(e.path)" class="row-sub">unsaved draft</span>
-          <span v-else-if="e.folder" class="row-sub">{{ e.folder }}</span>
+          <span v-if="drafts.has(e.path)" class="row-sub unsaved">Unsaved</span>
+          <span v-else-if="e.folder" class="row-sub mono">{{ e.folder }}</span>
         </button>
 
-        <p v-if="postsState.loading" class="empty muted">reading the repo...</p>
+        <p v-if="postsState.loading" class="empty muted">Reading the repository...</p>
         <p v-else-if="!entries.length && filter" class="empty muted">
-          nothing matches "{{ filter }}".
+          Nothing matches "{{ filter }}".
         </p>
         <p v-else-if="!entries.length" class="empty muted">
-          no files here yet. New post starts one.
+          No posts in this folder yet. New post starts one.
         </p>
       </div>
     </div>
 
     <p class="hint count-note">
-      {{ entries.length }} files in
-      {{ selectedFolder ? `${target?.contentPath}/${selectedFolder}` : target?.contentPath }}
+      {{ entries.length }} {{ entries.length === 1 ? "file" : "files" }} in
+      <span class="mono">{{
+        selectedFolder ? `${target?.contentPath}/${selectedFolder}` : target?.contentPath
+      }}</span>
     </p>
-
-    <StatusLine mode="posts" :items="statusItems" :user="auth.user" />
   </div>
 </template>
 
 <style scoped>
+.avatar {
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+}
+
 .branch-menu {
   position: relative;
   flex-shrink: 0;
 }
 
 .branch-btn {
-  text-transform: none;
-  letter-spacing: 0.02em;
-  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 220px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
 }
 
-.branch-btn:hover:not(:disabled) {
-  color: var(--canvas);
+.caret {
+  color: var(--ink-muted);
+  flex-shrink: 0;
 }
 
 .branch-panel {
@@ -274,32 +290,27 @@ function signOut(): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
 }
 
 .menu-sub {
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
   color: var(--ink-muted);
-}
-
-.menu-item:hover .menu-sub {
-  color: var(--canvas);
 }
 
 .menu-empty {
   margin: 0;
-  padding: 0.45rem 0.6rem;
-  border-top: var(--hair) solid var(--separator);
-  font-size: 0.78rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8125rem;
   color: var(--ink-muted);
 }
 
 .toolbar {
   display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-  margin-bottom: 1rem;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
 .search {
@@ -307,13 +318,9 @@ function signOut(): void {
   min-width: 0;
 }
 
-.search::-webkit-search-cancel-button {
-  filter: grayscale(1);
-}
-
 .composer {
-  margin-bottom: 1rem;
-  max-width: 560px;
+  margin-bottom: 1.5rem;
+  max-width: 520px;
 }
 
 .composer-actions {
@@ -330,9 +337,9 @@ function signOut(): void {
 
 .explorer {
   display: grid;
-  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
-  border: var(--edge) solid var(--ink);
-  background: var(--paper);
+  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
 }
 
 .listing {
@@ -340,32 +347,33 @@ function signOut(): void {
 }
 
 .row + .row {
-  border-top: var(--hair) solid var(--separator);
+  box-shadow: inset 0 1px 0 var(--separator);
 }
 
-.mark {
-  width: 1ch;
-  color: var(--accent);
+.seal-gap {
+  width: 6px;
   flex-shrink: 0;
-  white-space: pre;
 }
 
-.row:hover .mark.draft {
-  color: var(--canvas);
+.unsaved {
+  color: var(--accent);
 }
 
 .empty {
-  padding: 0.9rem 0.7rem;
+  padding: 1.5rem 1rem;
   margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
 }
 
 .count-note {
-  margin: 0.6rem 0 0;
+  margin-top: 1rem;
 }
 
 @media (max-width: 760px) {
   .explorer {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 </style>

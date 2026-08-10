@@ -4,8 +4,6 @@ import { useRoute, useRouter } from "vue-router";
 import MarkdownEditor from "@/components/MarkdownEditor.vue";
 import MetadataPanel from "@/components/MetadataPanel.vue";
 import PushDialog from "@/components/PushDialog.vue";
-import type { StatusItem } from "@/components/StatusLine.vue";
-import StatusLine from "@/components/StatusLine.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import { CMS_CONFIG } from "@/config";
 import { parsePost, serializePost } from "@/lib/frontmatter";
@@ -81,7 +79,13 @@ const branchUrl = computed(() =>
     : "#",
 );
 
-const crumbs = computed(() => state.repoPath);
+const crumbs = computed(() => {
+  const r = target.value;
+  if (!r) return state.repoPath;
+  return state.repoPath.startsWith(`${r.contentPath}/`)
+    ? state.repoPath.slice(r.contentPath.length + 1)
+    : state.repoPath;
+});
 
 function defaultCommitMessage(): string {
   const tpl = settings.commitTemplate || cfg.value?.commitTemplate || DEFAULT_COMMIT_TEMPLATE;
@@ -281,59 +285,64 @@ const clock = (d: Date) => d.toLocaleTimeString([], { hour: "2-digit", minute: "
 const statusLabel = computed(() => {
   switch (state.status) {
     case "pushing":
-      return "pushing to the branch";
+      return "Pushing";
     case "pushed":
-      return state.pushedAt ? `pushed ${clock(state.pushedAt)}` : "pushed";
+      return state.pushedAt ? `Pushed at ${clock(state.pushedAt)}` : "Pushed";
     case "local":
       return state.localSavedAt
-        ? `saved here ${clock(state.localSavedAt)}`
-        : "saved in this browser";
+        ? `Saved here at ${clock(state.localSavedAt)}`
+        : "Saved in this browser";
     case "error":
-      return "push failed";
+      return "Push failed";
     default:
-      return "no changes";
+      return "No changes";
   }
 });
 
-const statusTone = computed<StatusItem["tone"]>(() => {
+const sealTone = computed(() => {
   switch (state.status) {
     case "pushed":
       return "ok";
-    case "local":
-    case "pushing":
-      return "busy";
     case "error":
-      return "error";
+      return "danger";
+    case "idle":
+      return "hollow";
     default:
-      return "muted";
+      return "";
   }
 });
-
-const statusItems = computed<StatusItem[]>(() => [
-  {
-    label: "repo",
-    value: target.value ? `${target.value.owner}/${target.value.repo}` : "none",
-  },
-  { label: "branch", value: state.branch, href: branchUrl.value },
-  { value: statusLabel.value, tone: statusTone.value },
-  ...(onDefaultBranch.value
-    ? [{ value: "commits publish straight away", tone: "muted" as const }]
-    : []),
-]);
 </script>
 
 <template>
   <div class="page">
-    <p v-if="state.loading" class="muted">Loading...</p>
-    <div v-else-if="state.loadError" class="banner">
-      {{ state.loadError }}. On a private repo, sign out and sign in again so your token gets the repo scope.
-      <a href="#/posts">back to posts</a>
+    <p v-if="state.loading" class="muted loading">Loading the post...</p>
+    <div v-else-if="state.loadError" class="notice">
+      <span>
+        {{ state.loadError }} On a private repo, sign out and back in so your token gets the repo scope.
+        <a href="#/posts">Back to posts</a>
+      </span>
     </div>
 
     <template v-else-if="cfg">
       <div class="topbar">
-        <button class="quiet back-btn" @click="void router.push('/posts')">Posts</button>
-        <span class="crumbs muted" :title="crumbs">{{ crumbs }}</span>
+        <button class="quiet back-btn" @click="void router.push('/posts')">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M9.78 3.72a.75.75 0 0 1 0 1.06L6.56 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L4.44 8.53a.75.75 0 0 1 0-1.06l4.28-4.28a.75.75 0 0 1 1.06.53z"
+            />
+          </svg>
+          Posts
+        </button>
+        <span class="context crumbs" :title="state.repoPath">
+          <span class="path truncate">{{ crumbs }}</span>
+          <span class="context-sep">on</span>
+          <a class="branch-link" :href="branchUrl" target="_blank" rel="noreferrer">{{ state.branch }}</a>
+        </span>
+        <span class="bar-gap" />
+        <span class="save-state" :class="`is-${state.status}`">
+          <span class="seal" :class="sealTone" aria-hidden="true" />
+          {{ statusLabel }}
+        </span>
         <div v-if="cfg.components.length" class="insert-menu">
           <button class="quiet" :aria-expanded="insertOpen" @click="insertOpen = !insertOpen">Insert</button>
           <div v-if="insertOpen" class="menu-backdrop" @click="insertOpen = false" />
@@ -364,17 +373,18 @@ const statusItems = computed<StatusItem[]>(() => [
         </button>
       </div>
 
-      <div v-if="state.status === 'error'" class="banner">{{ state.error }}</div>
-      <div v-else-if="state.hasLocalDraft" class="banner info">
-        Picked up the local draft{{ state.localSavedAt ? ` saved ${state.localSavedAt.toLocaleString()}` : "" }}.
-        Push it to the branch, or
-        <button class="link-btn" @click="discardLocalDraft">throw the local changes away</button>.
+      <div v-if="state.status === 'error'" class="notice"><span>{{ state.error }}</span></div>
+      <div v-else-if="state.hasLocalDraft" class="notice info">
+        <span>
+          Picked up the draft saved in this browser{{
+            state.localSavedAt ? ` on ${state.localSavedAt.toLocaleString()}` : ""
+          }}. Push it to the branch, or
+          <button class="link-btn" @click="discardLocalDraft">discard the local changes</button>.
+        </span>
       </div>
 
       <MetadataPanel v-model="state.fm" :fields="cfg.fields" :slug="slug" :url-template="cfg.urlTemplate" />
       <MarkdownEditor ref="editorRef" v-model="state.body" />
-
-      <StatusLine mode="edit" :items="statusItems" />
 
       <PushDialog
         :open="showPushDialog"
@@ -396,21 +406,47 @@ const statusItems = computed<StatusItem[]>(() => [
 </template>
 
 <style scoped>
-.back-btn {
-  flex-shrink: 0;
+.loading {
+  padding: 3rem 0;
 }
 
-.back-btn::before {
-  content: "<- ";
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding-left: 0.5rem;
 }
 
 .crumbs {
-  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.path {
+  min-width: 4ch;
+}
+
+.branch-link {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+
+.branch-link:hover {
+  color: var(--accent);
+}
+
+.save-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
   white-space: nowrap;
-  font-size: 0.78rem;
+}
+
+.save-state.is-error {
+  color: var(--danger);
 }
 
 .pr-btn,
@@ -428,32 +464,37 @@ const statusItems = computed<StatusItem[]>(() => [
 }
 
 .insert-label {
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .insert-desc {
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   color: var(--ink-muted);
 }
 
-.menu-item:hover .insert-desc {
-  color: var(--canvas);
-}
-
 .link-btn {
+  display: inline;
   background: transparent;
   border: none;
+  box-shadow: none;
   padding: 0;
   font-size: inherit;
   font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
   color: var(--accent);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .link-btn:hover:not(:disabled) {
   background: transparent;
+  box-shadow: none;
   color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .crumbs {
+    order: 3;
+    max-width: 100%;
+  }
 }
 </style>
