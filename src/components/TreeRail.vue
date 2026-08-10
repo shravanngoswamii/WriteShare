@@ -14,9 +14,12 @@ interface FolderNode {
   name: string;
   depth: number;
   count: number;
+  last: boolean;
 }
 
 const collapsed = ref(new Set<string>());
+
+const parentOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 
 const nodes = computed<FolderNode[]>(() => {
   const counts = new Map<string, number>();
@@ -31,33 +34,34 @@ const nodes = computed<FolderNode[]>(() => {
     }
   }
   const all = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b));
-  const out: FolderNode[] = [];
-  for (const [path, count] of all) {
+  const visible = all.filter(([path]) => {
     const ancestors = path.split("/").slice(0, -1);
-    let hidden = false;
-    let accPath = "";
-    for (const a of ancestors) {
-      accPath = accPath ? `${accPath}/${a}` : a;
-      if (collapsed.value.has(accPath)) {
-        hidden = true;
-        break;
-      }
-    }
-    if (hidden) continue;
-    out.push({ path, name: path.split("/").pop() ?? path, depth: ancestors.length, count });
-  }
-  return out;
+    let acc = "";
+    return !ancestors.some((a) => {
+      acc = acc ? `${acc}/${a}` : a;
+      return collapsed.value.has(acc);
+    });
+  });
+  return visible.map(([path, count], i) => ({
+    path,
+    name: path.split("/").pop() ?? path,
+    depth: path.split("/").length - 1,
+    count,
+    last: !visible.some(([other], j) => j > i && parentOf(other) === parentOf(path)),
+  }));
 });
 
-function hasChildren(path: string): boolean {
-  return props.files.some((f) => f.startsWith(`${props.root}/${path}/`));
-}
-
-const childPaths = computed(() => {
+const expandable = computed(() => {
   const set = new Set<string>();
-  for (const n of nodes.value) {
-    const idx = n.path.lastIndexOf("/");
-    if (idx > 0) set.add(n.path.slice(0, idx));
+  for (const file of props.files) {
+    const rel = file.startsWith(`${props.root}/`) ? file.slice(props.root.length + 1) : file;
+    const parts = rel.split("/");
+    parts.pop();
+    let acc = "";
+    for (const [i, part] of parts.entries()) {
+      acc = acc ? `${acc}/${part}` : part;
+      if (i < parts.length - 1) set.add(acc);
+    }
   }
   return set;
 });
@@ -72,25 +76,25 @@ function toggle(path: string): void {
 
 <template>
   <nav class="rail" aria-label="Folders">
-    <button class="rail-row" :class="{ active: selected === '' }" @click="emit('select', '')">
-      <span class="rail-label">All posts</span>
+    <button class="rail-row root" :class="{ active: selected === '' }" @click="emit('select', '')">
+      <span class="rail-label">all posts</span>
       <span class="rail-count">{{ files.length }}</span>
     </button>
-    <div v-for="n in nodes" :key="n.path" class="rail-row-wrap" :style="{ paddingLeft: `${n.depth * 14}px` }">
+
+    <div v-for="n in nodes" :key="n.path" class="rail-line">
+      <span class="glyph" :style="{ paddingLeft: `${n.depth * 0.9}rem` }" aria-hidden="true">
+        {{ n.last ? "└─" : "├─" }}
+      </span>
       <button
-        v-if="childPaths.has(n.path) || hasChildren(n.path)"
+        v-if="expandable.has(n.path)"
         class="expander"
-        :aria-label="collapsed.has(n.path) ? 'Expand' : 'Collapse'"
+        :aria-label="`${collapsed.has(n.path) ? 'Expand' : 'Collapse'} ${n.name}`"
         @click.stop="toggle(n.path)"
       >
-        <svg class="icon chevron" :class="{ closed: collapsed.has(n.path) }" viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            d="M3.646 5.646a.5.5 0 0 1 .708 0L8 9.293l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708z"
-          />
-        </svg>
+        {{ collapsed.has(n.path) ? "+" : "-" }}
       </button>
-      <span v-else class="expander-spacer" />
-      <button class="rail-row folder" :class="{ active: selected === n.path }" @click="emit('select', n.path)">
+      <span v-else class="expander-gap" aria-hidden="true" />
+      <button class="rail-row" :class="{ active: selected === n.path }" @click="emit('select', n.path)">
         <span class="rail-label">{{ n.name }}</span>
         <span class="rail-count">{{ n.count }}</span>
       </button>
@@ -100,49 +104,56 @@ function toggle(path: string): void {
 
 <style scoped>
 .rail {
-  background: transparent;
-  padding: 0.25rem 0;
-  align-self: start;
+  align-self: stretch;
   position: sticky;
-  top: 4.5rem;
+  top: 3.5rem;
   max-height: calc(100vh - 6rem);
   overflow: auto;
-  min-width: 220px;
-  border-right: 1.5px solid var(--separator);
-  margin-right: -0.5rem;
-  padding-right: 1rem;
+  padding: 0.35rem 0;
+  border-right: var(--edge) solid var(--ink);
 }
 
-.rail-row-wrap {
+.rail-line {
   display: flex;
   align-items: center;
 }
 
+.glyph {
+  color: var(--ink-muted);
+  padding-right: 0.15rem;
+  white-space: pre;
+  flex-shrink: 0;
+}
+
 .rail-row {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.7rem;
+  padding: 0.3rem 0.5rem;
   text-align: left;
-  width: 100%;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .rail-row:hover:not(:disabled) {
-  background: var(--fill);
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.rail-row.root {
+  width: 100%;
+  border-bottom: var(--hair) solid var(--separator);
 }
 
 .rail-row.active {
-  background: transparent;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.rail-row:active:not(:disabled) {
-  transform: none;
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .rail-label {
@@ -151,37 +162,36 @@ function toggle(path: string): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.9rem;
 }
 
 .rail-count {
-  font-size: 0.75rem;
-  color: var(--ink-muted);
+  font-size: 0.72rem;
+  opacity: 0.7;
 }
 
 .expander {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
+  width: 1.1rem;
+  border: var(--hair) solid var(--separator);
   background: transparent;
   color: var(--ink-muted);
+  padding: 0;
+  line-height: 1.1;
+  font-size: 0.7rem;
+  letter-spacing: 0;
   flex-shrink: 0;
 }
 
-.expander-spacer {
-  width: 22px;
+.expander-gap {
+  width: 1.1rem;
   flex-shrink: 0;
 }
 
-.chevron {
-  transition: transform 0.12s ease;
-}
-
-.chevron.closed {
-  transform: rotate(-90deg);
+@media (max-width: 760px) {
+  .rail {
+    position: static;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: var(--edge) solid var(--ink);
+  }
 }
 </style>

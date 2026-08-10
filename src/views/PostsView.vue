@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import type { StatusItem } from "@/components/StatusLine.vue";
+import StatusLine from "@/components/StatusLine.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import TreeRail from "@/components/TreeRail.vue";
 import { auth, githubClient, logout } from "@/stores/auth";
@@ -68,7 +70,7 @@ const entries = computed(() => {
       const rel = path.slice(contentPath.length + 1);
       const parts = rel.split("/");
       const file = parts.pop() ?? rel;
-      return { path, name: file.replace(/\.mdx?$/i, ""), folder: parts.join("/") };
+      return { path, name: file, folder: parts.join("/") };
     })
     .filter((e) => {
       const rel = (e.folder ? `${e.folder}/` : "") + e.name;
@@ -93,6 +95,21 @@ const scopeHint = computed(() => {
   )
     return "";
   return "This repo may be private and your token only has public_repo. Sign out and sign in again to grant the repo scope.";
+});
+
+const statusItems = computed<StatusItem[]>(() => {
+  const t = target.value;
+  const items: StatusItem[] = [
+    {
+      label: "repo",
+      value: t ? `${t.owner}/${t.repo}` : "none",
+      href: t ? `https://github.com/${t.owner}/${t.repo}` : undefined,
+    },
+    { label: "branch", value: currentBranch.value },
+  ];
+  const unsaved = entries.value.filter((e) => drafts.value.has(e.path)).length;
+  if (unsaved) items.push({ value: `${unsaved} unsaved`, tone: "busy" });
+  return items;
 });
 
 function openEntry(path: string): void {
@@ -123,42 +140,74 @@ function signOut(): void {
 <template>
   <div class="page">
     <div class="topbar">
-      <h1 class="large-title">Posts</h1>
-      <button class="repo-chip" title="Repositories" @click="void router.push('/repos')">
-        {{ target ? `${target.owner}/${target.repo}` : "No repository" }}
-      </button>
+      <h1 class="large-title">posts</h1>
       <div class="branch-menu">
-        <button class="repo-chip" :aria-expanded="branchMenuOpen" title="Working branch" @click="void toggleBranchMenu()">
-          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0zM8 5.75A.75.75 0 0 0 8 4.25v1.5zM7.25 8a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0zM5 8.75a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 0 0-4.5 0zm-2.25.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM8 11.25a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5z"
-            />
-          </svg>
+        <button
+          class="quiet branch-btn"
+          :aria-expanded="branchMenuOpen"
+          title="Working branch"
+          @click="void toggleBranchMenu()"
+        >
           {{ currentBranch }}
         </button>
         <div v-if="branchMenuOpen" class="menu-backdrop" @click="branchMenuOpen = false" />
-        <div v-if="branchMenuOpen" class="menu-panel">
+        <div v-if="branchMenuOpen" class="menu-panel branch-panel">
           <button class="menu-item" :disabled="!target?.workingBranch" @click="void chooseBranch('')">
             <span class="menu-label">{{ target?.defaultBranch ?? "main" }}</span>
-            <span class="menu-sub">default</span>
+            <span class="menu-sub">default branch</span>
           </button>
-          <p v-if="!draftBranches.length" class="menu-empty">No draft branches</p>
+          <p v-if="!draftBranches.length" class="menu-empty">no draft branches yet</p>
           <button v-for="b in draftBranches" :key="b" class="menu-item" @click="void chooseBranch(b)">
             <span class="menu-label">{{ b }}</span>
             <span v-if="b === target?.workingBranch" class="menu-sub">current</span>
           </button>
         </div>
       </div>
+      <button class="quiet" title="Repositories" @click="void router.push('/repos')">Repos</button>
       <ThemeToggle />
-      <img
-        v-if="auth.user"
-        class="avatar"
-        :src="auth.user.avatar_url"
-        :alt="auth.user.login"
-        width="30"
-        height="30"
-      />
       <button class="quiet" @click="signOut">Sign out</button>
+    </div>
+
+    <div class="toolbar">
+      <input v-model="filter" class="search" type="search" placeholder="filter files" />
+      <button class="primary" @click="composing = !composing">New post</button>
+    </div>
+
+    <div v-if="composing" class="block composer">
+      <div class="field">
+        <label for="new-title">title</label>
+        <input
+          id="new-title"
+          v-model="newPost.title"
+          type="text"
+          placeholder="What are you writing?"
+          autofocus
+          @keydown.enter="createNew"
+        />
+      </div>
+      <div class="field">
+        <label for="new-folder">folder</label>
+        <input
+          id="new-folder"
+          v-model="newPost.folder"
+          type="text"
+          :placeholder="selectedFolder || 'optional'"
+          list="folders"
+          @keydown.enter="createNew"
+        />
+        <datalist id="folders">
+          <option v-for="f in folders" :key="f" :value="f" />
+        </datalist>
+      </div>
+      <div class="composer-actions">
+        <button class="quiet" @click="composing = false">Cancel</button>
+        <button class="primary" :disabled="!newPost.title.trim()" @click="createNew">Start writing</button>
+      </div>
+    </div>
+
+    <div v-if="postsState.error" class="banner">
+      {{ postsState.error }}
+      <span v-if="scopeHint" class="scope-hint">{{ scopeHint }}</span>
     </div>
 
     <div class="explorer">
@@ -171,203 +220,100 @@ function signOut(): void {
       />
 
       <div class="listing">
-        <div class="search-row">
-          <svg class="icon search-icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.867-3.834zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"
-            />
-          </svg>
-          <input v-model="filter" class="search" type="search" placeholder="Search" />
-          <button class="primary new-btn" @click="composing = !composing">New post</button>
-        </div>
+        <button v-for="e in entries" :key="e.path" class="row" @click="openEntry(e.path)">
+          <span class="mark" :class="{ draft: drafts.has(e.path) }" aria-hidden="true">
+            {{ drafts.has(e.path) ? "*" : " " }}
+          </span>
+          <span class="row-text">
+            <span class="row-name">{{ e.name }}</span>
+          </span>
+          <span v-if="drafts.has(e.path)" class="row-sub">unsaved draft</span>
+          <span v-else-if="e.folder" class="row-sub">{{ e.folder }}</span>
+        </button>
 
-        <div v-if="composing" class="composer">
-          <input
-            v-model="newPost.title"
-            type="text"
-            placeholder="Post title"
-            autofocus
-            @keydown.enter="createNew"
-          />
-          <input
-            v-model="newPost.folder"
-            type="text"
-            :placeholder="selectedFolder || 'Folder (optional)'"
-            list="folders"
-            @keydown.enter="createNew"
-          />
-          <datalist id="folders">
-            <option v-for="f in folders" :key="f" :value="f" />
-          </datalist>
-          <div class="composer-actions">
-            <button class="quiet" @click="composing = false">Cancel</button>
-            <button class="primary" :disabled="!newPost.title.trim()" @click="createNew">Start writing</button>
-          </div>
-        </div>
-
-        <div v-if="postsState.error" class="banner">
-          {{ postsState.error }}
-          <p v-if="scopeHint" class="hint">{{ scopeHint }}</p>
-        </div>
-        <p v-else-if="postsState.loading" class="muted list-note">Loading...</p>
-        <p v-else class="muted list-note small">
-          {{ entries.length }} files in
-          {{ selectedFolder ? `${target?.contentPath}/${selectedFolder}` : target?.contentPath }}
+        <p v-if="postsState.loading" class="empty muted">reading the repo...</p>
+        <p v-else-if="!entries.length && filter" class="empty muted">
+          nothing matches "{{ filter }}".
         </p>
-
-        <div class="grouped">
-          <button v-for="e in entries" :key="e.path" class="row" @click="openEntry(e.path)">
-            <span v-if="drafts.has(e.path)" class="draft-dot" title="Unsaved local draft" aria-label="unsaved local draft" />
-            <span class="row-text">
-              <span class="row-name">{{ e.name }}</span>
-              <span v-if="e.folder" class="row-sub">{{ e.folder }}</span>
-            </span>
-            <svg class="icon chevron" viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                d="M5.646 3.646a.5.5 0 0 1 .708 0l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L10.293 8 5.646 4.354a.5.5 0 0 1 0-.708z"
-              />
-            </svg>
-          </button>
-          <p v-if="!entries.length && !postsState.loading" class="muted empty">Nothing here.</p>
-        </div>
+        <p v-else-if="!entries.length" class="empty muted">
+          no files here yet. New post starts one.
+        </p>
       </div>
     </div>
+
+    <p class="hint count-note">
+      {{ entries.length }} files in
+      {{ selectedFolder ? `${target?.contentPath}/${selectedFolder}` : target?.contentPath }}
+    </p>
+
+    <StatusLine mode="posts" :items="statusItems" :user="auth.user" />
   </div>
 </template>
 
 <style scoped>
-.avatar {
-  border-radius: 50%;
-  display: block;
-}
-
-.quiet {
-  font-size: 0.9rem;
-  padding: 0.45rem 0.9rem;
-}
-
-.repo-chip {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.78rem;
-  color: var(--ink-muted);
-  padding: 0.35rem 0.8rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
 .branch-menu {
   position: relative;
+  flex-shrink: 0;
 }
 
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
+.branch-btn {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
 }
 
-.menu-panel {
-  position: absolute;
+.branch-btn:hover:not(:disabled) {
+  color: var(--canvas);
+}
+
+.branch-panel {
   left: 0;
-  top: calc(100% + 6px);
-  z-index: 50;
-  min-width: 220px;
-  max-height: 300px;
-  overflow: auto;
-  background: var(--paper);
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 0.35rem;
-  display: grid;
-  gap: 0.15rem;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 0.7rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.82rem;
-}
-
-.menu-item:hover:not(:disabled) {
-  background: var(--fill);
-}
-
-.menu-item:active:not(:disabled) {
-  transform: none;
 }
 
 .menu-label {
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .menu-sub {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--ink-muted);
+}
+
+.menu-item:hover .menu-sub {
+  color: var(--canvas);
 }
 
 .menu-empty {
-  margin: 0.4rem 0.7rem;
-  font-size: 0.8rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-top: var(--hair) solid var(--separator);
+  font-size: 0.78rem;
   color: var(--ink-muted);
 }
 
-.fab {
-  border-radius: var(--radius-sm);
-}
-
-.explorer {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 1.25rem;
-  align-items: start;
-}
-
-.listing {
-  min-width: 0;
-}
-
-.search-row {
-  position: relative;
-  margin-bottom: 0.75rem;
+.toolbar {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.9rem;
-  color: var(--ink-muted);
-  pointer-events: none;
+  align-items: stretch;
+  margin-bottom: 1rem;
 }
 
 .search {
-  padding-left: 2.4rem;
-  border-radius: var(--radius-sm);
+  flex: 1;
+  min-width: 0;
 }
 
-.new-btn {
-  flex-shrink: 0;
+.search::-webkit-search-cancel-button {
+  filter: grayscale(1);
 }
 
 .composer {
-  background: transparent;
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
   margin-bottom: 1rem;
-  display: grid;
-  gap: 0.6rem;
+  max-width: 560px;
 }
 
 .composer-actions {
@@ -376,86 +322,48 @@ function signOut(): void {
   gap: 0.5rem;
 }
 
-.list-note {
-  margin: 0.25rem 0.15rem 0.75rem;
+.scope-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--ink-muted);
 }
 
-.hint {
-  margin: 0.4rem 0 0;
-  font-size: 0.85rem;
+.explorer {
+  display: grid;
+  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+  border: var(--edge) solid var(--ink);
+  background: var(--paper);
 }
 
-.grouped {
-  background: transparent;
-  border-top: 1.5px solid var(--ink);
-  border-bottom: 1.5px solid var(--ink);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0.85rem 0.4rem;
-  transition: background-color 0.1s ease;
+.listing {
+  min-width: 0;
 }
 
 .row + .row {
-  border-top: 1px solid var(--separator);
+  border-top: var(--hair) solid var(--separator);
 }
 
-.row:hover:not(:disabled) {
-  background: var(--fill);
-}
-
-.row:active:not(:disabled) {
-  transform: none;
-}
-
-.draft-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
+.mark {
+  width: 1ch;
+  color: var(--accent);
   flex-shrink: 0;
+  white-space: pre;
 }
 
-.row-text {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  gap: 0.1rem;
-}
-
-.row-name {
-  font-weight: 500;
-  font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.row-sub {
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-}
-
-.chevron {
-  color: var(--ink-muted);
-  font-size: 0.8rem;
-  flex-shrink: 0;
+.row:hover .mark.draft {
+  color: var(--canvas);
 }
 
 .empty {
-  padding: 1rem 1.15rem;
+  padding: 0.9rem 0.7rem;
   margin: 0;
 }
 
-@media (max-width: 800px) {
+.count-note {
+  margin: 0.6rem 0 0;
+}
+
+@media (max-width: 760px) {
   .explorer {
     grid-template-columns: 1fr;
   }
