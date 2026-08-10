@@ -37,19 +37,19 @@ function onBackdrop(e: MouseEvent): void {
   <Teleport to="body">
     <div v-if="open" class="overlay" role="dialog" aria-modal="true" aria-label="Push changes" @click="onBackdrop">
       <div class="dialog">
-        <h2 class="section-title">push changes</h2>
+        <h2>Push changes</h2>
         <dl class="meta">
-          <dt>file</dt>
-          <dd>{{ filePath }}</dd>
-          <dt>branch</dt>
-          <dd>{{ branch }}</dd>
+          <dt>File</dt>
+          <dd class="mono">{{ filePath }}</dd>
+          <dt>Branch</dt>
+          <dd class="mono">{{ branch }}</dd>
         </dl>
         <div class="field">
-          <label for="push-message">commit message</label>
+          <label for="push-message">Commit message</label>
           <input id="push-message" v-model="message" type="text" autofocus @keydown.enter="confirm" />
         </div>
         <div class="actions">
-          <button class="quiet" :disabled="pushing" @click="emit('cancel')">Cancel</button>
+          <button :disabled="pushing" @click="emit('cancel')">Cancel</button>
           <button class="primary" :disabled="pushing || !message.trim()" @click="confirm">
             {{ pushing ? "Pushing" : "Push" }}
           </button>
@@ -67,47 +67,60 @@ function onBackdrop(e: MouseEvent): void {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(20, 19, 17, 0.35);
+  animation: fade var(--fast) var(--ease);
 }
 
 .dialog {
   width: 100%;
-  max-width: 480px;
-  background: var(--paper);
-  border: var(--edge) solid var(--ink);
-  box-shadow: 6px 6px 0 var(--accent);
-  padding: 0.9rem;
+  max-width: 460px;
+  background: var(--raised);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-high);
+  padding: 1.35rem;
+  animation: lift var(--slow) var(--ease);
 }
 
 .dialog h2 {
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.9rem;
+  font-size: 1.0625rem;
 }
 
 .meta {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 0.15rem 0.6rem;
-  margin: 0 0 0.9rem;
-  padding: 0.5rem 0.6rem;
-  border: var(--hair) solid var(--separator);
-  font-size: 0.76rem;
+  gap: 0.3rem 1rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.8125rem;
 }
 
 .meta dt {
   color: var(--ink-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .meta dd {
   margin: 0;
   overflow-wrap: anywhere;
+  color: var(--ink-soft);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes lift {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 </style>

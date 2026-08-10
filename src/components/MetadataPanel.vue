@@ -35,13 +35,17 @@ const pubDate = computed(() => {
 <template>
   <div class="panel">
     <button class="summary" :aria-expanded="open" @click="open = !open">
-      <span class="fence" aria-hidden="true">---</span>
       <span class="summary-title">{{ title }}</span>
       <span v-if="pubDate" class="chip">{{ pubDate }}</span>
-      <span v-if="isDraft" class="chip">draft</span>
+      <span v-if="isDraft" class="chip">Draft</span>
       <span v-for="c in categories" :key="c" class="chip">{{ c }}</span>
       <span class="gap" />
-      <span class="toggle">{{ open ? "hide frontmatter" : "frontmatter" }}</span>
+      <span class="toggle">
+        {{ open ? "Hide details" : "Details" }}
+        <svg class="icon caret" :class="{ flipped: open }" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.22 6.28a.75.75 0 0 1 1.06-.06L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1z" />
+        </svg>
+      </span>
     </button>
 
     <div v-show="open" class="details">
@@ -54,28 +58,31 @@ const pubDate = computed(() => {
 
       <div class="preview-col">
         <template v-if="permalink">
-          <p class="label">permalink</p>
-          <a class="permalink" :href="permalink" target="_blank" rel="noreferrer">{{ permalink }}</a>
+          <p class="label">Permalink</p>
+          <a class="permalink mono" :href="permalink" target="_blank" rel="noreferrer">{{ permalink }}</a>
           <div class="og-card">
             <p class="og-title">{{ title }}</p>
-            <p class="og-desc" :class="{ muted: !description }">{{ description || "no description yet" }}</p>
+            <p class="og-desc" :class="{ muted: !description }">
+              {{ description || "No description yet." }}
+            </p>
             <p class="og-site">{{ domain }}</p>
           </div>
         </template>
         <p v-else class="hint">
-          add a preview URL template in repo settings and the permalink shows up here.
+          Set a preview URL in repo settings to see the permalink and link preview here.
         </p>
       </div>
     </div>
-    <div v-show="open" class="fence-end" aria-hidden="true">---</div>
   </div>
 </template>
 
 <style scoped>
 .panel {
-  border: var(--edge) solid var(--ink);
-  border-bottom: none;
   background: var(--paper);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-low);
+  margin-bottom: 1rem;
 }
 
 .summary {
@@ -86,36 +93,25 @@ const pubDate = computed(() => {
   flex-wrap: wrap;
   background: transparent;
   border: none;
-  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  padding: 0.85rem 1.1rem;
   text-align: left;
-  font-size: 0.855rem;
+  font-size: 0.9375rem;
   font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .summary:hover:not(:disabled) {
   background: transparent;
+  box-shadow: none;
 }
 
 .summary:hover .toggle {
-  background: var(--ink);
-  color: var(--canvas);
-}
-
-.fence,
-.fence-end {
-  color: var(--ink-muted);
-  letter-spacing: 0.1em;
-}
-
-.fence-end {
-  padding: 0 0.7rem 0.55rem;
-  font-size: 0.855rem;
+  color: var(--ink);
 }
 
 .summary-title {
-  font-weight: 700;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -124,50 +120,59 @@ const pubDate = computed(() => {
 
 .gap {
   flex: 1;
+  min-width: 0.5rem;
 }
 
 .toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   flex-shrink: 0;
-  padding: 0.1rem 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.8125rem;
   color: var(--ink-muted);
-  border: var(--hair) solid var(--separator);
+  transition: color var(--fast) var(--ease);
+}
+
+.caret {
+  transition: transform var(--fast) var(--ease);
+}
+
+.caret.flipped {
+  transform: rotate(180deg);
 }
 
 .details {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 1.5rem;
-  padding: 0.35rem 0.7rem 0.8rem;
+  gap: 2.5rem;
+  padding: 0.35rem 1.1rem 1.4rem;
 }
 
 .permalink {
   display: inline-block;
-  margin-bottom: 0.75rem;
+  margin: 0.2rem 0 1rem;
   word-break: break-all;
-  font-size: 0.78rem;
+  color: var(--accent);
 }
 
 .og-card {
-  border: var(--hair) solid var(--separator);
-  padding: 0.7rem;
+  background: var(--raised);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-md);
+  padding: 0.9rem;
 }
 
 .og-title {
-  margin: 0 0 0.25rem;
-  font-family: var(--font-prose);
-  font-weight: 700;
-  line-height: 1.3;
+  margin: 0 0 0.3rem;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .og-desc {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-prose);
-  font-size: 0.85rem;
-  line-height: 1.45;
+  margin: 0 0 0.6rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -176,14 +181,14 @@ const pubDate = computed(() => {
 
 .og-site {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--ink-muted);
 }
 
 @media (max-width: 880px) {
   .details {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.25rem;
   }
 }
 </style>

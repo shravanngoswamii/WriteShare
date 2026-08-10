@@ -64,10 +64,11 @@ defineExpose({ insertSnippet });
 </template>
 
 <style scoped>
-/* The one soft surface in the app: chrome is mono, the writing is not. */
 .md-editor {
   background: var(--paper);
-  border: var(--edge) solid var(--ink);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-low);
   min-height: 68vh;
   overflow: hidden;
 }
@@ -85,40 +86,41 @@ defineExpose({ insertSnippet });
   --crepe-color-primary: var(--accent);
   --crepe-color-secondary: var(--fill-strong);
   --crepe-color-on-secondary: var(--ink);
-  --crepe-color-inverse: var(--ink);
-  --crepe-color-on-inverse: var(--canvas);
-  --crepe-color-inline-code: var(--mark);
+  --crepe-color-inverse: var(--ink-soft);
+  --crepe-color-on-inverse: var(--paper);
+  --crepe-color-inline-code: var(--accent);
   --crepe-color-error: var(--danger);
   --crepe-color-hover: var(--fill);
   --crepe-color-selected: var(--fill-strong);
   --crepe-color-inline-area: var(--fill);
-  --crepe-font-title: var(--font-prose);
-  --crepe-font-default: var(--font-prose);
+  --crepe-font-title: var(--font-ui);
+  --crepe-font-default: var(--font-ui);
   --crepe-font-code: var(--font-mono);
-  --crepe-shadow-1: none;
-  --crepe-shadow-2: none;
+  --crepe-shadow-1: var(--shadow-low);
+  --crepe-shadow-2: var(--shadow-mid);
 
   padding: 0;
-  font-size: 1rem;
-  line-height: 1.7;
+  font-size: 1.03rem;
+  line-height: 1.75;
 }
 
-/* Crepe reserves 120px side gutters for block handles; 3rem is enough and
-   keeps the measure where a reader wants it. */
+/* Crepe reserves 120px side gutters for block handles; 3.5rem leaves the
+   handles room while keeping the measure where a reader wants it. */
 .md-editor :deep(.ProseMirror) {
-  max-width: 78ch;
-  padding: 1.75rem 3rem 3rem;
+  max-width: 72ch;
+  padding: 2.75rem 3.5rem 4rem;
 }
 
 .md-editor :deep(h1),
 .md-editor :deep(h2),
 .md-editor :deep(h3) {
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  letter-spacing: -0.018em;
 }
 
 @media (max-width: 640px) {
-  .md-editor :deep(.milkdown) {
-    padding: 1.1rem 1rem;
+  .md-editor :deep(.ProseMirror) {
+    padding: 1.5rem 1.25rem 2.5rem;
   }
 }
 </style>

@@ -71,8 +71,8 @@ function onCheck(e: Event): boolean {
 <template>
   <div class="form">
     <div v-for="field in fields" :key="field.name" class="field">
-      <label :for="`fm-${field.name}`" :title="field.required ? `${field.label} (required)` : field.label">
-        <span v-if="field.required" class="req">*</span>{{ field.name }}
+      <label :for="`fm-${field.name}`" :title="field.name">
+        {{ field.label }}<span v-if="field.required" class="req" aria-hidden="true">*</span>
       </label>
 
       <input
@@ -99,14 +99,18 @@ function onCheck(e: Event): boolean {
         @input="set(field.name, localInputToIso(onInput($event)))"
       />
 
-      <label v-else-if="field.type === 'boolean'" class="checkbox-row bool-row" :for="`fm-${field.name}`">
-        <input
-          :id="`fm-${field.name}`"
-          type="checkbox"
-          :checked="asBool(modelValue[field.name])"
-          @change="set(field.name, onCheck($event))"
-        />
-        <span class="bool-value">{{ asBool(modelValue[field.name]) }}</span>
+      <label v-else-if="field.type === 'boolean'" class="switch-row" :for="`fm-${field.name}`">
+        <span class="switch" :class="{ on: asBool(modelValue[field.name]) }">
+          <input
+            :id="`fm-${field.name}`"
+            class="switch-input"
+            type="checkbox"
+            :checked="asBool(modelValue[field.name])"
+            @change="set(field.name, onCheck($event))"
+          />
+          <span class="knob" />
+        </span>
+        <span class="switch-value">{{ asBool(modelValue[field.name]) ? "Yes" : "No" }}</span>
       </label>
 
       <input
@@ -138,50 +142,93 @@ function onCheck(e: Event): boolean {
 <style scoped>
 .form {
   display: grid;
-  gap: 0.6rem;
+  gap: 1.1rem;
 }
 
 .req {
   color: var(--danger);
+  margin-left: 0.15rem;
 }
 
-.bool-row {
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   cursor: pointer;
-  padding: 0.15rem 0;
+  padding: 0.1rem 0;
 }
 
-.bool-value {
-  font-size: 0.8rem;
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--fill-strong);
+  transition: background-color var(--slow) var(--ease);
+}
+
+.switch.on {
+  background: var(--accent);
+}
+
+.switch-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--raised);
+  box-shadow: var(--shadow-low);
+  transition: transform var(--slow) var(--ease);
+  pointer-events: none;
+}
+
+.switch.on .knob {
+  transform: translateX(16px);
+}
+
+.switch-value {
+  font-size: 0.875rem;
   color: var(--ink-muted);
 }
 
 .chip-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.4rem;
 }
 
 .toggle-chip {
-  padding: 0.2rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  border-width: var(--hair);
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
   border-color: var(--separator);
   background: transparent;
-  color: var(--ink-muted);
+  box-shadow: none;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.toggle-chip:hover:not(:disabled) {
+  box-shadow: none;
 }
 
 .toggle-chip.active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--canvas);
-}
-
-.toggle-chip.active:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+  font-weight: 500;
 }
 </style>

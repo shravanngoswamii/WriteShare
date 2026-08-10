@@ -19,11 +19,11 @@ function onBackdrop(e: MouseEvent): void {
   <Teleport to="body">
     <div v-if="open" class="overlay" role="dialog" aria-modal="true" :aria-label="title" @click="onBackdrop">
       <div class="dialog">
-        <h2 class="section-title">{{ title }}</h2>
+        <h2>{{ title }}</h2>
         <p class="body">{{ body }}</p>
         <div class="actions">
-          <button class="quiet" :disabled="busy" @click="emit('cancel')">Cancel</button>
-          <button :class="danger ? 'destructive' : 'primary'" :disabled="busy" @click="emit('confirm')">
+          <button :disabled="busy" @click="emit('cancel')">Cancel</button>
+          <button :class="danger ? 'destructive solid' : 'primary'" :disabled="busy" @click="emit('confirm')">
             {{ confirmLabel }}
           </button>
         </div>
@@ -40,32 +40,49 @@ function onBackdrop(e: MouseEvent): void {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(20, 19, 17, 0.35);
+  animation: fade var(--fast) var(--ease);
 }
 
 .dialog {
   width: 100%;
-  max-width: 420px;
-  background: var(--paper);
-  border: var(--edge) solid var(--ink);
-  box-shadow: 6px 6px 0 var(--accent);
-  padding: 0.9rem;
+  max-width: 400px;
+  background: var(--raised);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-high);
+  padding: 1.35rem;
+  animation: lift var(--slow) var(--ease);
 }
 
 .dialog h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.4rem;
+  font-size: 1.0625rem;
 }
 
 .body {
-  margin: 0 0 1rem;
-  line-height: 1.55;
-  font-size: 0.8rem;
-  color: var(--ink-muted);
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes lift {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
 }
 </style>

@@ -76,27 +76,30 @@ function toggle(path: string): void {
 
 <template>
   <nav class="rail" aria-label="Folders">
-    <button class="rail-row root" :class="{ active: selected === '' }" @click="emit('select', '')">
-      <span class="rail-label">all posts</span>
+    <button class="rail-row" :class="{ active: selected === '' }" @click="emit('select', '')">
+      <span class="rail-label">All posts</span>
       <span class="rail-count">{{ files.length }}</span>
     </button>
 
     <div v-for="n in nodes" :key="n.path" class="rail-line">
-      <span class="glyph" :style="{ paddingLeft: `${n.depth * 0.9}rem` }" aria-hidden="true">
-        {{ n.last ? "└─" : "├─" }}
-      </span>
+      <button
+        class="rail-row"
+        :class="{ active: selected === n.path }"
+        :style="{ paddingLeft: `${0.7 + n.depth * 0.85}rem` }"
+        @click="emit('select', n.path)"
+      >
+        <span class="rail-label">{{ n.name }}</span>
+        <span class="rail-count">{{ n.count }}</span>
+      </button>
       <button
         v-if="expandable.has(n.path)"
         class="expander"
         :aria-label="`${collapsed.has(n.path) ? 'Expand' : 'Collapse'} ${n.name}`"
         @click.stop="toggle(n.path)"
       >
-        {{ collapsed.has(n.path) ? "+" : "-" }}
-      </button>
-      <span v-else class="expander-gap" aria-hidden="true" />
-      <button class="rail-row" :class="{ active: selected === n.path }" @click="emit('select', n.path)">
-        <span class="rail-label">{{ n.name }}</span>
-        <span class="rail-count">{{ n.count }}</span>
+        <svg class="icon caret" :class="{ closed: collapsed.has(n.path) }" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.22 6.28a.75.75 0 0 1 1.06-.06L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1z" />
+        </svg>
       </button>
     </div>
   </nav>
@@ -104,25 +107,19 @@ function toggle(path: string): void {
 
 <style scoped>
 .rail {
-  align-self: stretch;
   position: sticky;
-  top: 3.5rem;
-  max-height: calc(100vh - 6rem);
+  top: 5.5rem;
+  padding-top: 0.35rem;
+  max-height: calc(100vh - 8rem);
   overflow: auto;
-  padding: 0.35rem 0;
-  border-right: var(--edge) solid var(--ink);
+  display: grid;
+  gap: 1px;
 }
 
 .rail-line {
   display: flex;
   align-items: center;
-}
-
-.glyph {
-  color: var(--ink-muted);
-  padding-right: 0.15rem;
-  white-space: pre;
-  flex-shrink: 0;
+  gap: 0.15rem;
 }
 
 .rail-row {
@@ -130,30 +127,29 @@ function toggle(path: string): void {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   background: transparent;
   border: none;
-  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  padding: 0.35rem 0.7rem;
   text-align: left;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
+  color: var(--ink-soft);
+  transition: background-color var(--fast) var(--ease);
 }
 
 .rail-row:hover:not(:disabled) {
-  background: var(--ink);
-  color: var(--canvas);
-}
-
-.rail-row.root {
-  width: 100%;
-  border-bottom: var(--hair) solid var(--separator);
+  background: var(--fill);
+  box-shadow: none;
+  color: var(--ink);
 }
 
 .rail-row.active {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .rail-label {
@@ -165,33 +161,47 @@ function toggle(path: string): void {
 }
 
 .rail-count {
-  font-size: 0.72rem;
-  opacity: 0.7;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.rail-row.active .rail-count {
+  color: var(--accent);
+  opacity: 0.75;
 }
 
 .expander {
-  width: 1.1rem;
-  border: var(--hair) solid var(--separator);
-  background: transparent;
-  color: var(--ink-muted);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  line-height: 1.1;
-  font-size: 0.7rem;
-  letter-spacing: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-muted);
   flex-shrink: 0;
 }
 
-.expander-gap {
-  width: 1.1rem;
-  flex-shrink: 0;
+.expander:hover:not(:disabled) {
+  background: var(--fill-strong);
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.caret {
+  transition: transform var(--fast) var(--ease);
+}
+
+.caret.closed {
+  transform: rotate(-90deg);
 }
 
 @media (max-width: 760px) {
   .rail {
     position: static;
-    max-height: 200px;
-    border-right: none;
-    border-bottom: var(--edge) solid var(--ink);
+    max-height: 240px;
   }
 }
 </style>
