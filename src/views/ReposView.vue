@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
+import type { StatusItem } from "@/components/StatusLine.vue";
+import StatusLine from "@/components/StatusLine.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
-import { githubClient } from "@/stores/auth";
+import { auth, githubClient } from "@/stores/auth";
 import {
   activeRepo,
   addRepo,
@@ -64,6 +66,12 @@ const savedSlugs = computed(
   () => new Set(repos.list.map((r) => `${r.owner}/${r.repo}`.toLowerCase())),
 );
 
+const statusItems = computed<StatusItem[]>(() => [
+  { label: "active", value: active.value ? `${active.value.owner}/${active.value.repo}` : "none" },
+  { value: `${repos.list.length} in use`, tone: "muted" },
+  { value: `${remote.list.length} on github`, tone: "muted" },
+]);
+
 function parseSlug(input: string): { owner: string; repo: string } | null {
   const cleaned = input
     .trim()
@@ -112,58 +120,63 @@ function manage(index: number): void {
 <template>
   <div class="page">
     <div class="topbar">
-      <h1 class="large-title">Repositories</h1>
+      <h1 class="large-title">repos</h1>
+      <button class="quiet" @click="void router.push('/posts')">Posts</button>
       <ThemeToggle />
     </div>
 
-    <div v-if="repos.list.length" class="grouped">
-      <div v-for="(r, i) in repos.list" :key="`${r.owner}/${r.repo}`" class="repo-row">
-        <button class="row" @click="activate(i)">
-          <span class="row-text">
-            <span class="row-name">{{ r.owner }}/{{ r.repo }}</span>
-            <span class="row-sub">
-              {{ r.contentPath }}<template v-if="r.defaultBranch"> · {{ r.defaultBranch }}</template>
+    <template v-if="repos.list.length">
+      <h2 class="section-title">in use</h2>
+      <div class="grouped">
+        <div v-for="(r, i) in repos.list" :key="`${r.owner}/${r.repo}`" class="strip">
+          <button class="row" @click="activate(i)">
+            <span class="mark" aria-hidden="true">{{ active === r ? ">" : " " }}</span>
+            <span class="row-text">
+              <span class="row-name">{{ r.owner }}/{{ r.repo }}</span>
             </span>
-          </span>
-          <span v-if="active === r" class="active-dot" aria-label="active" />
-        </button>
-        <button class="manage-btn" title="Settings, branches and pull requests" @click="manage(i)">Manage</button>
-        <button class="remove-btn" title="Remove" @click="removeRepo(i)">
-          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"
-            />
-          </svg>
-        </button>
+            <span class="row-sub">
+              {{ r.contentPath }}<template v-if="r.defaultBranch"> on {{ r.defaultBranch }}</template>
+            </span>
+          </button>
+          <button class="row-action" title="Settings, branches and pull requests" @click="manage(i)">Manage</button>
+          <button class="row-action destructive" title="Remove from WriteShare" @click="removeRepo(i)">Remove</button>
+        </div>
       </div>
-    </div>
+      <p class="hint">the marked repo is the one the posts screen reads and writes.</p>
+    </template>
 
-    <h2 class="section-title">Add a repository</h2>
-    <div class="composer">
-      <input
-        v-model="addForm.slug"
-        type="text"
-        placeholder="owner/repo or a GitHub URL"
-        aria-label="repository"
-        @keydown.enter="add"
-      />
-      <input
-        v-model="addForm.contentPath"
-        type="text"
-        placeholder="content path, e.g. src/content/blog"
-        aria-label="content path"
-        @keydown.enter="add"
-      />
+    <h2 class="section-title">add a repo</h2>
+    <div class="block form-block">
+      <div class="field">
+        <label for="add-slug">repository</label>
+        <input
+          id="add-slug"
+          v-model="addForm.slug"
+          type="text"
+          placeholder="owner/repo, or paste a GitHub URL"
+          @keydown.enter="add"
+        />
+      </div>
+      <div class="field">
+        <label for="add-path">content path</label>
+        <input
+          id="add-path"
+          v-model="addForm.contentPath"
+          type="text"
+          placeholder="src/content/blog"
+          @keydown.enter="add"
+        />
+      </div>
       <div v-if="addForm.error" class="banner">{{ addForm.error }}</div>
-      <div class="composer-actions">
+      <div class="block-actions">
         <button class="primary" :disabled="!addForm.slug.trim()" @click="add">Add and write</button>
       </div>
     </div>
 
-    <h2 class="section-title">App settings</h2>
-    <div class="composer">
+    <h2 class="section-title">app settings</h2>
+    <div class="block form-block">
       <div class="field">
-        <label>Palette (matte, light + dark pair)</label>
+        <label>palette</label>
         <div class="palette-grid">
           <button
             v-for="p in PALETTES"
@@ -173,206 +186,122 @@ function manage(index: number): void {
             @click="setPalette(p.id)"
           >
             <span class="swatches">
-              <span class="swatch-row">
-                <span v-for="c in p.light" :key="`l${c}`" class="swatch" :style="{ background: c }" />
-              </span>
-              <span class="swatch-row">
-                <span v-for="c in p.dark" :key="`d${c}`" class="swatch" :style="{ background: c }" />
-              </span>
+              <span v-for="c in [...p.light, ...p.dark]" :key="c" class="swatch" :style="{ background: c }" />
             </span>
             <span class="palette-name">{{ p.name }}</span>
           </button>
         </div>
       </div>
-      <label class="checkbox-row settings-row">
+      <label class="checkbox-row">
         <input v-model="settings.autoSaveToGitHub" type="checkbox" />
-        <span>Auto-save to GitHub</span>
-        <span class="muted small">When off, edits stay in the browser until you Push manually.</span>
+        <span>push every edit to GitHub automatically</span>
       </label>
+      <p class="hint">
+        off by default: edits stay in this browser until you press Push in the editor.
+      </p>
     </div>
 
-    <h2 class="section-title">Your repositories</h2>
-    <p v-if="remote.loading" class="muted small">Loading...</p>
+    <h2 class="section-title">your github repos</h2>
+    <p v-if="remote.loading" class="muted small">reading your account...</p>
     <div v-else-if="remote.error" class="banner">{{ remote.error }}</div>
     <div v-else class="grouped">
-      <div v-for="r in remote.list" :key="r.full_name" class="repo-row">
-        <button class="row" :disabled="savedSlugs.has(r.full_name.toLowerCase())" @click="quickAdd(r.full_name)">
-          <span class="row-text">
-            <span class="row-name">{{ r.full_name }}</span>
-            <span class="row-sub">{{ r.private ? "private" : "public" }}</span>
-          </span>
-          <span v-if="savedSlugs.has(r.full_name.toLowerCase())" class="muted small">added</span>
-          <svg v-else class="icon chevron" viewBox="0 0 16 16" aria-hidden="true">
-            <path
-              d="M8 1.5a.75.75 0 0 1 .75.75v5h5a.75.75 0 0 1 0 1.5h-5v5a.75.75 0 0 1-1.5 0v-5h-5a.75.75 0 0 1 0-1.5h5v-5A.75.75 0 0 1 8 1.5z"
-            />
-          </svg>
-        </button>
-      </div>
+      <button
+        v-for="r in remote.list"
+        :key="r.full_name"
+        class="row"
+        :disabled="savedSlugs.has(r.full_name.toLowerCase())"
+        @click="quickAdd(r.full_name)"
+      >
+        <span class="mark" aria-hidden="true">{{ savedSlugs.has(r.full_name.toLowerCase()) ? " " : "+" }}</span>
+        <span class="row-text">
+          <span class="row-name">{{ r.full_name }}</span>
+        </span>
+        <span class="row-sub">
+          {{ savedSlugs.has(r.full_name.toLowerCase()) ? "already added" : r.private ? "private" : "public" }}
+        </span>
+      </button>
     </div>
+
+    <StatusLine mode="repos" :items="statusItems" :user="auth.user" />
   </div>
 </template>
 
 <style scoped>
-.section-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin: 2rem 0 0.75rem;
-}
-
-.grouped {
-  background: transparent;
-  border-top: 1.5px solid var(--ink);
-  border-bottom: 1.5px solid var(--ink);
-}
-
-.repo-row {
+.strip {
   display: flex;
   align-items: stretch;
 }
 
-.repo-row + .repo-row {
-  border-top: 1px solid var(--separator);
+.strip + .strip {
+  border-top: var(--hair) solid var(--separator);
 }
 
-.row {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0.85rem 1.15rem;
-}
-
-.row:hover:not(:disabled) {
-  background: var(--fill);
-}
-
-.row:active:not(:disabled) {
-  transform: none;
-}
-
-.row:disabled {
-  opacity: 1;
-}
-
-.row-text {
+.strip .row {
   flex: 1;
   min-width: 0;
-  display: grid;
-  gap: 0.1rem;
 }
 
-.row-name {
-  font-weight: 500;
-  font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.row-sub {
-  font-size: 0.8rem;
-  color: var(--ink-muted);
-}
-
-.active-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--ok);
+.mark {
+  width: 1ch;
+  color: var(--accent);
   flex-shrink: 0;
+  white-space: pre;
 }
 
-.chevron {
-  color: var(--ink-muted);
+.row:hover .mark {
+  color: var(--canvas);
 }
 
-.remove-btn,
-.manage-btn {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink-muted);
-  padding: 0 1rem;
+.form-block {
+  max-width: 560px;
 }
 
-.remove-btn:hover:not(:disabled) {
-  background: transparent;
-  color: var(--danger);
-}
-
-.manage-btn:hover:not(:disabled) {
-  background: var(--fill-strong);
-  color: var(--ink);
-}
-
-.composer {
-  background: transparent;
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 1rem;
-  display: grid;
-  gap: 0.6rem;
-}
-
-.composer-actions {
+.block-actions {
   display: flex;
   justify-content: flex-end;
 }
 
-.settings-row {
-  gap: 0.6rem;
-}
-
 .palette-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .palette-card {
-  display: grid;
-  gap: 0.45rem;
-  justify-items: center;
-  padding: 0.7rem 0.5rem;
-  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
   border-color: var(--separator);
   background: transparent;
-}
-
-.palette-card:hover:not(:disabled) {
-  background: var(--fill);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 400;
 }
 
 .palette-card.active {
   border-color: var(--accent);
-  box-shadow: none;
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .swatches {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.swatch-row {
   display: flex;
-  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .swatch {
-  width: 16px;
+  width: 11px;
   height: 16px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  border: var(--hair) solid var(--separator);
+  border-left: none;
+}
+
+.swatch:first-child {
+  border-left: var(--hair) solid var(--separator);
 }
 
 .palette-name {
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.75rem;
 }
 </style>

@@ -19,11 +19,11 @@ function onBackdrop(e: MouseEvent): void {
   <Teleport to="body">
     <div v-if="open" class="overlay" role="dialog" aria-modal="true" :aria-label="title" @click="onBackdrop">
       <div class="dialog">
-        <h2>{{ title }}</h2>
-        <p class="muted body">{{ body }}</p>
+        <h2 class="section-title">{{ title }}</h2>
+        <p class="body">{{ body }}</p>
         <div class="actions">
-          <button :disabled="busy" @click="emit('cancel')">Cancel</button>
-          <button class="primary" :class="{ danger }" :disabled="busy" @click="emit('confirm')">
+          <button class="quiet" :disabled="busy" @click="emit('cancel')">Cancel</button>
+          <button :class="danger ? 'destructive' : 'primary'" :disabled="busy" @click="emit('confirm')">
             {{ confirmLabel }}
           </button>
         </div>
@@ -40,38 +40,32 @@ function onBackdrop(e: MouseEvent): void {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .dialog {
   width: 100%;
   max-width: 420px;
   background: var(--paper);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 1.25rem;
+  border: var(--edge) solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 0.9rem;
 }
 
-h2 {
+.dialog h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
 }
 
 .body {
   margin: 0 0 1rem;
-  line-height: 1.5;
-  font-size: 0.92rem;
+  line-height: 1.55;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-}
-
-.danger {
-  background: var(--danger);
 }
 </style>

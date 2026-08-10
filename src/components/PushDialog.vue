@@ -37,19 +37,21 @@ function onBackdrop(e: MouseEvent): void {
   <Teleport to="body">
     <div v-if="open" class="overlay" role="dialog" aria-modal="true" aria-label="Push changes" @click="onBackdrop">
       <div class="dialog">
-        <h2>Push changes</h2>
-        <div class="meta">
-          <span class="chip">{{ filePath }}</span>
-          <span class="chip">{{ branch }}</span>
-        </div>
+        <h2 class="section-title">push changes</h2>
+        <dl class="meta">
+          <dt>file</dt>
+          <dd>{{ filePath }}</dd>
+          <dt>branch</dt>
+          <dd>{{ branch }}</dd>
+        </dl>
         <div class="field">
-          <label for="push-message">Commit message</label>
+          <label for="push-message">commit message</label>
           <input id="push-message" v-model="message" type="text" autofocus @keydown.enter="confirm" />
         </div>
         <div class="actions">
-          <button :disabled="pushing" @click="emit('cancel')">Cancel</button>
+          <button class="quiet" :disabled="pushing" @click="emit('cancel')">Cancel</button>
           <button class="primary" :disabled="pushing || !message.trim()" @click="confirm">
-            {{ pushing ? "Pushing..." : "Push" }}
+            {{ pushing ? "Pushing" : "Push" }}
           </button>
         </div>
       </div>
@@ -65,30 +67,41 @@ function onBackdrop(e: MouseEvent): void {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .dialog {
   width: 100%;
-  max-width: 460px;
+  max-width: 480px;
   background: var(--paper);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 1.25rem;
+  border: var(--edge) solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 0.9rem;
 }
 
-h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.dialog h2 {
+  margin: 0 0 0.6rem;
 }
 
 .meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.15rem 0.6rem;
+  margin: 0 0 0.9rem;
+  padding: 0.5rem 0.6rem;
+  border: var(--hair) solid var(--separator);
+  font-size: 0.76rem;
+}
+
+.meta dt {
+  color: var(--ink-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .actions {

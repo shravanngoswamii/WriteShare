@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import type { StatusItem } from "@/components/StatusLine.vue";
+import StatusLine from "@/components/StatusLine.vue";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import { githubClient } from "@/stores/auth";
 import { activeRepo, refreshRepoConfig, resolveConfig } from "@/stores/repos";
@@ -46,6 +48,17 @@ const componentsList = computed(() => (target.value ? resolveConfig(target.value
 const repoUrl = computed(() =>
   repo.value ? `https://github.com/${repo.value.owner}/${repo.value.repo}` : "#",
 );
+
+const statusItems = computed<StatusItem[]>(() => [
+  { label: "repo", value: repo.value ? `${repo.value.owner}/${repo.value.repo}` : "none" },
+  { label: "default", value: target.value?.defaultBranch ?? "unknown" },
+  { value: `${branches.list.length} draft branches`, tone: "muted" },
+  { value: `${prs.list.length} open prs`, tone: "muted" },
+  {
+    value: target.value?.configSource === "app" ? "config: this browser" : "config: writeshare.yml",
+    tone: "muted",
+  },
+]);
 
 onMounted(async () => {
   if (!target.value) {
@@ -162,15 +175,8 @@ async function doClosePr(prNumber: number): Promise<void> {
 <template>
   <div class="page">
     <div class="topbar">
-      <button class="back-btn" @click="void router.push('/repos')">
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-          <path
-            d="M10.354 3.146a.5.5 0 0 1 0 .708L6.207 8l4.147 4.146a.5.5 0 0 1-.708.708l-4.5-4.5a.5.5 0 0 1 0-.708l4.5-4.5a.5.5 0 0 1 .708 0z"
-          />
-        </svg>
-        Repositories
-      </button>
-      <h1 class="large-title repo-title" v-if="target">{{ target.owner }}/{{ target.repo }}</h1>
+      <button class="quiet back-btn" @click="void router.push('/repos')">Repos</button>
+      <h1 v-if="target" class="large-title repo-title">{{ target.owner }}/{{ target.repo }}</h1>
       <a :href="repoUrl" target="_blank" rel="noreferrer" class="chip">github.com</a>
       <ThemeToggle />
     </div>
@@ -182,92 +188,124 @@ async function doClosePr(prNumber: number): Promise<void> {
     </div>
 
     <template v-if="tab === 'settings'">
-      <div class="card">
+      <div class="block card">
         <div class="field">
-          <label for="content-path">Content path</label>
+          <label for="content-path">content path</label>
           <input id="content-path" v-model="form.contentPath" type="text" placeholder="src/content/blog" />
         </div>
         <div class="field">
-          <label for="url-template">Preview URL template ({slug} token, optional)</label>
-          <input id="url-template" v-model="form.urlTemplate" type="text" placeholder="https://example.com/blog/{slug}/" />
+          <label for="url-template">preview url</label>
+          <input
+            id="url-template"
+            v-model="form.urlTemplate"
+            type="text"
+            placeholder="https://example.com/blog/{slug}/"
+          />
+          <p class="hint">{slug} is replaced with the file name. leave it empty to skip the permalink.</p>
         </div>
         <div class="field">
-          <label for="commit-template">Commit message template ({action}, {path}, {title})</label>
-          <input id="commit-template" v-model="form.commitTemplate" type="text" placeholder="{action} {path} (via WriteShare)" />
+          <label for="commit-template">commit message</label>
+          <input
+            id="commit-template"
+            v-model="form.commitTemplate"
+            type="text"
+            placeholder="{action} {path} (via WriteShare)"
+          />
+          <p class="hint">tokens: {action}, {path}, {title}.</p>
         </div>
         <div v-if="componentsList.length" class="field">
-          <label>Components (from writeshare.yml, available in the editor's Insert menu)</label>
+          <label>components</label>
           <div class="components-list">
             <span v-for="c in componentsList" :key="c.name" class="chip" :title="c.description ?? c.name">
               {{ c.label }}
             </span>
           </div>
+          <p class="hint">declared in writeshare.yml, offered by the editor's Insert menu.</p>
         </div>
-        <div class="settings-actions">
+        <div class="card-actions">
           <button class="primary" @click="saveSettings">{{ form.saved ? "Saved" : "Save settings" }}</button>
-          <button :disabled="busy.reloadingConfig" @click="void reloadConfig()">
-            {{ busy.reloadingConfig ? "Reloading..." : "Reload writeshare.yml" }}
+          <button class="quiet" :disabled="busy.reloadingConfig" @click="void reloadConfig()">
+            {{ busy.reloadingConfig ? "Reloading" : "Reload writeshare.yml" }}
           </button>
         </div>
-        <p class="muted small">
-          A
+        <p class="hint">
           <a :href="`${repoUrl}/blob/${target?.defaultBranch ?? 'main'}/writeshare.yml`" target="_blank" rel="noreferrer">
             writeshare.yml
           </a>
-          in the repo root is the source of truth; saving here overrides it for this browser.
+          in the repo root is the source of truth. saving here overrides it for this browser only.
         </p>
       </div>
     </template>
 
     <template v-else-if="tab === 'branches'">
-      <p v-if="branches.loading" class="muted">Loading...</p>
+      <p v-if="branches.loading" class="muted small">reading branches...</p>
       <div v-else-if="branches.error" class="banner">{{ branches.error }}</div>
       <div v-else class="grouped">
-        <p v-if="!branches.list.length" class="muted empty">No draft branches.</p>
-        <div v-for="b in branches.list" :key="b" class="repo-row">
-          <a class="row row-link" :href="`${repoUrl}/tree/${encodeURIComponent(b)}`" target="_blank" rel="noreferrer">
+        <p v-if="!branches.list.length" class="empty muted">
+          no draft branches. one appears the first time you push a post.
+        </p>
+        <div v-for="b in branches.list" :key="b" class="strip">
+          <a class="row" :href="`${repoUrl}/tree/${encodeURIComponent(b)}`" target="_blank" rel="noreferrer">
             <span class="row-text">
               <span class="row-name">{{ b }}</span>
             </span>
           </a>
-          <button class="remove-btn" :disabled="busy.branch === b" @click="confirm.branch = b">Delete</button>
+          <button
+            class="row-action destructive"
+            :disabled="busy.branch === b"
+            @click="confirm.branch = b"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </template>
 
     <template v-else>
-      <p v-if="prs.loading" class="muted">Loading...</p>
+      <p v-if="prs.loading" class="muted small">reading pull requests...</p>
       <div v-else-if="prs.error" class="banner">{{ prs.error }}</div>
       <div v-else class="grouped">
-        <p v-if="!prs.list.length" class="muted empty">No open pull requests.</p>
+        <p v-if="!prs.list.length" class="empty muted">
+          no open pull requests. Open PR in the editor starts one.
+        </p>
         <div v-for="p in prs.list" :key="p.number" class="pr">
-          <div class="repo-row pr-row">
-            <a class="row row-link" :href="p.html_url" target="_blank" rel="noreferrer">
+          <div class="strip">
+            <a class="row" :href="p.html_url" target="_blank" rel="noreferrer">
+              <span class="pr-number">#{{ p.number }}</span>
               <span class="row-text">
-                <span class="row-name">#{{ p.number }} {{ p.title }}</span>
-                <span class="row-sub">{{ p.head.ref }}</span>
+                <span class="row-name">{{ p.title }}</span>
               </span>
+              <span class="row-sub">{{ p.head.ref }}</span>
             </a>
-            <button class="merge-btn" @click="mergeUi.openFor = mergeUi.openFor === p.number ? 0 : p.number">
-              Merge...
+            <button
+              class="row-action"
+              @click="mergeUi.openFor = mergeUi.openFor === p.number ? 0 : p.number"
+            >
+              Merge
             </button>
-            <button class="remove-btn" :disabled="busy.pr === p.number" @click="confirm.closePr = p.number">Close</button>
+            <button
+              class="row-action destructive"
+              :disabled="busy.pr === p.number"
+              @click="confirm.closePr = p.number"
+            >
+              Close
+            </button>
           </div>
           <div v-if="mergeUi.openFor === p.number" class="merge-panel">
             <div class="merge-options">
-              <label class="checkbox-row" v-for="m in ['squash', 'merge', 'rebase'] as const" :key="m">
+              <label v-for="m in ['squash', 'merge', 'rebase'] as const" :key="m" class="checkbox-row">
                 <input v-model="mergeUi.method" type="radio" name="merge-method" :value="m" />
-                <span>{{ m === 'squash' ? 'Squash and merge' : m === 'merge' ? 'Merge commit' : 'Rebase and merge' }}</span>
+                <span>{{ m === "squash" ? "squash and merge" : m === "merge" ? "merge commit" : "rebase and merge" }}</span>
               </label>
               <label class="checkbox-row">
                 <input v-model="mergeUi.deleteBranch" type="checkbox" />
-                <span>Delete the draft branch after merging</span>
+                <span>delete the draft branch afterwards</span>
               </label>
             </div>
             <div class="merge-actions">
               <button class="quiet" :disabled="mergeUi.busy" @click="mergeUi.openFor = 0">Cancel</button>
               <button class="primary" :disabled="mergeUi.busy" @click="void doMerge(p.number)">
-                {{ mergeUi.busy ? "Merging..." : "Merge" }}
+                {{ mergeUi.busy ? "Merging" : "Merge" }}
               </button>
             </div>
           </div>
@@ -275,9 +313,11 @@ async function doClosePr(prNumber: number): Promise<void> {
       </div>
     </template>
 
+    <StatusLine mode="repo" :items="statusItems" />
+
     <ConfirmDialog
       :open="confirm.branch !== ''"
-      title="Delete branch"
+      title="delete branch"
       :body="`Delete draft branch '${confirm.branch}'? Commits on it stay on GitHub, but the branch ref is removed.`"
       confirm-label="Delete"
       danger
@@ -287,7 +327,7 @@ async function doClosePr(prNumber: number): Promise<void> {
     />
     <ConfirmDialog
       :open="confirm.closePr !== 0"
-      title="Close pull request"
+      title="close pull request"
       :body="`Close PR #${confirm.closePr} without merging?`"
       confirm-label="Close PR"
       danger
@@ -303,161 +343,100 @@ async function doClosePr(prNumber: number): Promise<void> {
   flex-shrink: 0;
 }
 
-.repo-title {
-  font-size: 1.15rem;
+.back-btn::before {
+  content: "<- ";
+}
+
+.repo-title::before {
+  content: none;
 }
 
 .tabs {
   display: flex;
-  gap: 1.5rem;
-  border-bottom: 1.5px solid var(--ink);
-  margin-bottom: 1.25rem;
+  border: var(--edge) solid var(--ink);
+  border-bottom: none;
+  max-width: 820px;
 }
 
 .tabs button {
   border: none;
-  border-radius: 0;
+  border-right: var(--hair) solid var(--separator);
   background: transparent;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
   color: var(--ink-muted);
-  padding: 0.6rem 0.1rem;
-  margin-bottom: -1.5px;
-  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.9rem;
 }
 
-.tabs button:hover:not(:disabled) {
-  background: transparent;
-  color: var(--ink);
+.tabs button:last-of-type {
+  border-right: none;
 }
 
 .tabs button.active {
-  color: var(--ink);
-  border-bottom-color: var(--accent);
+  background: var(--ink);
+  color: var(--canvas);
 }
 
 .card {
-  background: transparent;
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  padding: 1.25rem;
-  max-width: 640px;
+  max-width: 820px;
+  border-top: none;
 }
 
 .components-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
-.settings-actions {
+.card-actions {
   display: flex;
   gap: 0.5rem;
-  margin: 0.5rem 0 1rem;
 }
 
 .grouped {
-  background: transparent;
-  border-top: 1.5px solid var(--ink);
-  border-bottom: 1.5px solid var(--ink);
   max-width: 820px;
+  border-top: none;
 }
 
-.repo-row {
+.strip {
   display: flex;
   align-items: stretch;
 }
 
-.repo-row + .repo-row {
-  border-top: 1px solid var(--separator);
+.strip + .strip,
+.pr + .pr {
+  border-top: var(--hair) solid var(--separator);
 }
 
-.row {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0.85rem 1.15rem;
-  text-align: left;
-}
-
-.row-link {
-  color: var(--ink);
-}
-
-.row:hover:not(:disabled) {
-  background: var(--fill);
-}
-
-.row-text {
+.strip .row {
   flex: 1;
   min-width: 0;
-  display: grid;
-  gap: 0.1rem;
 }
 
-.row-name {
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.row-sub {
-  font-size: 0.8rem;
+.pr-number {
   color: var(--ink-muted);
+  flex-shrink: 0;
 }
 
-.remove-btn,
-.merge-btn {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  padding: 0 1rem;
-  align-self: center;
-}
-
-.merge-btn {
-  border: 1.5px solid var(--ink);
-  border-radius: var(--radius-sm);
-  border-left: none;
-  border-right: none;
-  margin: 0.6rem 0;
-  padding: 0.35rem 0.9rem;
-  align-self: center;
-}
-
-.merge-btn:hover:not(:disabled) {
-  background: var(--fill-strong);
-}
-
-.remove-btn {
-  color: var(--danger);
-}
-
-.remove-btn:hover:not(:disabled) {
-  background: transparent;
+.row:hover .pr-number {
+  color: var(--canvas);
 }
 
 .empty {
-  padding: 1rem 1.15rem;
+  padding: 0.9rem 0.7rem;
   margin: 0;
 }
 
-.pr .merge-panel {
-  border-top: 1.5px solid var(--ink);
-  padding: 1rem 1.15rem;
+.merge-panel {
+  border-top: var(--hair) solid var(--separator);
+  padding: 0.7rem;
   display: grid;
-  gap: 0.75rem;
-  background: transparent;
+  gap: 0.7rem;
+  background: var(--fill);
 }
 
 .merge-options {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
+  font-size: 0.8rem;
 }
 
 .merge-actions {
