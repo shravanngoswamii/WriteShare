@@ -314,6 +314,8 @@ input[type="radio"]:checked::after {
 
 .page {
   width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
   padding: 0 1rem 4rem;
 }
 
@@ -528,7 +530,7 @@ input[type="radio"]:checked::after {
 }
 
 /* Frontmatter keys are shown as keys: `title:`, not as prose labels. */
-.field > label::after {
+.field > label:first-child::after {
   content: ":";
 }
 
