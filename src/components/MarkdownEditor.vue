@@ -108,6 +108,7 @@ defineExpose({ insertSnippet });
    handles room while keeping the measure where a reader wants it. */
 .md-editor :deep(.ProseMirror) {
   max-width: 72ch;
+  margin: 0 auto;
   padding: 2.75rem 3.5rem 4rem;
 }
 
