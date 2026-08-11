@@ -1,68 +1,58 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
-import ThemeToggle from "@/components/ThemeToggle.vue";
-import TreeRail from "@/components/TreeRail.vue";
-import { auth, githubClient, logout } from "@/stores/auth";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { auth, githubClient } from "@/stores/auth";
 import { listLocalDrafts } from "@/stores/drafts";
 import { postsState, refreshPosts } from "@/stores/posts";
-import { activeRepo, refreshRepoConfig } from "@/stores/repos";
+import { activeRepo } from "@/stores/repos";
 
+const route = useRoute();
 const router = useRouter();
+
 const filter = ref("");
+const onlyUnsaved = ref(false);
 const newPost = reactive({ title: "", folder: "" });
 const composing = ref(false);
-const selectedFolder = ref("");
-const branchMenuOpen = ref(false);
-const draftBranches = ref<string[]>([]);
+const searchRef = ref<HTMLInputElement | null>(null);
+const titleRef = ref<HTMLInputElement | null>(null);
 
 const target = computed(() => activeRepo());
-const currentBranch = computed(
-  () => target.value?.workingBranch || target.value?.defaultBranch || "main",
+const selectedFolder = computed(() =>
+  typeof route.query.folder === "string" ? route.query.folder : "",
 );
 
-async function toggleBranchMenu(): Promise<void> {
-  branchMenuOpen.value = !branchMenuOpen.value;
-  const t = target.value;
-  if (branchMenuOpen.value && t) {
-    draftBranches.value = await githubClient()
-      .listBranches(t, "draft/")
-      .catch(() => []);
-  }
-}
-
-async function chooseBranch(branch: string): Promise<void> {
-  const t = target.value;
-  if (!t) return;
-  t.workingBranch = branch || undefined;
-  branchMenuOpen.value = false;
-  await refreshPosts();
-}
-
 onMounted(async () => {
-  const repo = target.value;
-  if (!repo) {
+  if (!target.value) {
     void router.push("/repos");
     return;
   }
-  if (!auth.user) {
-    try {
-      auth.user = await githubClient().user();
-    } catch {
-      // A broken token surfaces as a list error below, which is clearer.
-    }
-  }
-  await refreshPosts();
-  if (!repo.configCheckedAt) {
-    void refreshRepoConfig(githubClient(), repo).catch(() => {});
-  }
+  if (!postsState.files.length) await refreshPosts();
+  window.addEventListener("keydown", onKey);
 });
+
+onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
+
+/** Typing in a field must never trigger a shortcut. */
+function typing(e: KeyboardEvent): boolean {
+  const el = e.target as HTMLElement | null;
+  return Boolean(el?.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function onKey(e: KeyboardEvent): void {
+  if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
+  if (e.key === "/") {
+    e.preventDefault();
+    searchRef.value?.focus();
+  } else if (e.key === "n") {
+    e.preventDefault();
+    startComposing();
+  }
+}
 
 const drafts = computed(() => new Set(listLocalDrafts().map((d) => d.repoPath)));
 
-const entries = computed(() => {
+const inFolder = computed(() => {
   const contentPath = target.value?.contentPath ?? "";
-  const q = filter.value.trim().toLowerCase();
   return postsState.files
     .map((path) => {
       const rel = path.slice(contentPath.length + 1);
@@ -70,29 +60,43 @@ const entries = computed(() => {
       const file = parts.pop() ?? rel;
       return { path, name: file, folder: parts.join("/") };
     })
-    .filter((e) => {
-      const rel = (e.folder ? `${e.folder}/` : "") + e.name;
-      if (selectedFolder.value && !rel.startsWith(`${selectedFolder.value}/`)) return false;
-      return !q || e.name.toLowerCase().includes(q) || e.folder.toLowerCase().includes(q);
-    });
+    .filter(
+      (e) =>
+        !selectedFolder.value ||
+        e.folder === selectedFolder.value ||
+        e.folder.startsWith(`${selectedFolder.value}/`),
+    );
 });
 
+const entries = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  return inFolder.value.filter((e) => {
+    if (onlyUnsaved.value && !drafts.value.has(e.path)) return false;
+    return !q || e.name.toLowerCase().includes(q) || e.folder.toLowerCase().includes(q);
+  });
+});
+
+const unsavedCount = computed(() => inFolder.value.filter((e) => drafts.value.has(e.path)).length);
+
 const folders = computed(() =>
-  [...new Set(entries.value.map((e) => e.folder))].filter(Boolean).sort(),
+  [...new Set(inFolder.value.map((e) => e.folder))].filter(Boolean).sort(),
+);
+
+const location = computed(() =>
+  selectedFolder.value
+    ? `${target.value?.contentPath}/${selectedFolder.value}`
+    : (target.value?.contentPath ?? ""),
 );
 
 /** 404 usually means a private repo hidden from an under-scoped token. */
 const scopeHint = computed(() => {
   if (postsState.errorStatus !== 404) return "";
-  if (
-    !auth.scopes ||
-    auth.scopes
-      .split(",")
-      .map((s) => s.trim())
-      .includes("repo")
-  )
-    return "";
-  return "This repo may be private and your token only has public_repo. Sign out and sign in again to grant the repo scope.";
+  const scopes = auth.scopes
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!scopes.length || scopes.includes("repo")) return "";
+  return "This repository may be private while your token only carries public_repo. Sign out and back in to grant the repo scope.";
 });
 
 function openEntry(path: string): void {
@@ -100,6 +104,12 @@ function openEntry(path: string): void {
     path: "/edit",
     query: { path, ...(target.value?.workingBranch ? { branch: target.value.workingBranch } : {}) },
   });
+}
+
+function startComposing(): void {
+  composing.value = true;
+  newPost.folder = selectedFolder.value;
+  window.setTimeout(() => titleRef.value?.focus(), 0);
 }
 
 function createNew(): void {
@@ -114,213 +124,217 @@ function createNew(): void {
   });
 }
 
-function signOut(): void {
-  logout();
-  void router.push("/login");
+async function reload(): Promise<void> {
+  await refreshPosts();
 }
 </script>
 
 <template>
-  <div class="page">
-    <div class="topbar">
-      <h1 class="large-title">Posts</h1>
-      <span v-if="target" class="context">
-        <span class="truncate">{{ target.owner }}/{{ target.repo }}</span>
-      </span>
-      <span class="bar-gap" />
-      <div class="branch-menu">
-        <button
-          class="quiet branch-btn"
-          :aria-expanded="branchMenuOpen"
-          title="Working branch"
-          @click="void toggleBranchMenu()"
-        >
-          <span class="truncate">{{ currentBranch }}</span>
-          <svg class="icon caret" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M4.22 6.28a.75.75 0 0 1 1.06-.06L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1z" />
-          </svg>
+  <div class="view">
+    <header class="view-header">
+      <div class="view-heading">
+        <h1 class="view-title">{{ selectedFolder || "Posts" }}</h1>
+        <p class="view-sub mono">{{ location }}</p>
+      </div>
+      <div class="view-actions">
+        <button class="quiet" :disabled="postsState.loading" @click="void reload()">
+          {{ postsState.loading ? "Refreshing" : "Refresh" }}
         </button>
-        <div v-if="branchMenuOpen" class="menu-backdrop" @click="branchMenuOpen = false" />
-        <div v-if="branchMenuOpen" class="menu-panel branch-panel">
-          <button class="menu-item" :disabled="!target?.workingBranch" @click="void chooseBranch('')">
-            <span class="menu-label">{{ target?.defaultBranch ?? "main" }}</span>
-            <span class="menu-sub">Default branch</span>
-          </button>
-          <p v-if="!draftBranches.length" class="menu-empty">No draft branches yet</p>
-          <button v-for="b in draftBranches" :key="b" class="menu-item" @click="void chooseBranch(b)">
-            <span class="menu-label">{{ b }}</span>
-            <span v-if="b === target?.workingBranch" class="menu-sub">Current</span>
+        <button class="primary" @click="startComposing">New post</button>
+      </div>
+    </header>
+
+    <div class="view-body">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="icon search-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M11.74 10.34a6.5 6.5 0 1 0-1.4 1.4l3.85 3.85a1 1 0 0 0 1.42-1.42l-3.87-3.83zM6.5 11a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"
+            />
+          </svg>
+          <input
+            ref="searchRef"
+            v-model="filter"
+            class="search"
+            type="search"
+            placeholder="Search this folder"
+            aria-label="Search posts"
+          />
+          <kbd v-if="!filter" class="hotkey">/</kbd>
+        </div>
+        <button
+          v-if="unsavedCount"
+          class="filter-toggle"
+          :class="{ on: onlyUnsaved }"
+          :aria-pressed="onlyUnsaved"
+          @click="onlyUnsaved = !onlyUnsaved"
+        >
+          <span class="seal" aria-hidden="true" />
+          {{ unsavedCount }} unsaved
+        </button>
+      </div>
+
+      <div v-if="composing" class="block composer">
+        <div class="composer-fields">
+          <div class="field">
+            <label for="new-title">Title</label>
+            <input
+              id="new-title"
+              ref="titleRef"
+              v-model="newPost.title"
+              type="text"
+              placeholder="What are you writing?"
+              @keydown.enter="createNew"
+              @keydown.esc="composing = false"
+            />
+          </div>
+          <div class="field">
+            <label for="new-folder">Folder</label>
+            <input
+              id="new-folder"
+              v-model="newPost.folder"
+              type="text"
+              placeholder="Optional"
+              list="folders"
+              @keydown.enter="createNew"
+              @keydown.esc="composing = false"
+            />
+            <datalist id="folders">
+              <option v-for="f in folders" :key="f" :value="f" />
+            </datalist>
+          </div>
+        </div>
+        <p class="hint">
+          The file is created on a draft branch the first time you push, so nothing lands on
+          {{ target?.defaultBranch ?? "the default branch" }} until you merge.
+        </p>
+        <div class="composer-actions">
+          <button class="quiet" @click="composing = false">Cancel</button>
+          <button class="primary" :disabled="!newPost.title.trim()" @click="createNew">
+            Start writing
           </button>
         </div>
       </div>
-      <button class="quiet" title="Repositories" @click="void router.push('/repos')">Repos</button>
-      <ThemeToggle />
-      <img
-        v-if="auth.user"
-        class="avatar"
-        :src="auth.user.avatar_url"
-        :alt="auth.user.login"
-        :title="auth.user.login"
-        width="26"
-        height="26"
-      />
-      <button class="quiet" @click="signOut">Sign out</button>
-    </div>
 
-    <div class="toolbar">
-      <input v-model="filter" class="search" type="search" placeholder="Search posts" />
-      <button class="primary" @click="composing = !composing">New post</button>
-    </div>
-
-    <div v-if="composing" class="block composer">
-      <div class="field">
-        <label for="new-title">Title</label>
-        <input
-          id="new-title"
-          v-model="newPost.title"
-          type="text"
-          placeholder="What are you writing?"
-          autofocus
-          @keydown.enter="createNew"
-        />
+      <div v-if="postsState.error" class="notice">
+        <span>
+          {{ postsState.error }}
+          <span v-if="scopeHint" class="scope-hint">{{ scopeHint }}</span>
+        </span>
       </div>
-      <div class="field">
-        <label for="new-folder">Folder</label>
-        <input
-          id="new-folder"
-          v-model="newPost.folder"
-          type="text"
-          :placeholder="selectedFolder || 'Optional'"
-          list="folders"
-          @keydown.enter="createNew"
-        />
-        <datalist id="folders">
-          <option v-for="f in folders" :key="f" :value="f" />
-        </datalist>
-      </div>
-      <div class="composer-actions">
-        <button class="quiet" @click="composing = false">Cancel</button>
-        <button class="primary" :disabled="!newPost.title.trim()" @click="createNew">Start writing</button>
-      </div>
-    </div>
-
-    <div v-if="postsState.error" class="notice">
-      <span>
-        {{ postsState.error }}
-        <span v-if="scopeHint" class="scope-hint">{{ scopeHint }}</span>
-      </span>
-    </div>
-
-    <div class="explorer">
-      <TreeRail
-        v-if="target"
-        :files="postsState.files"
-        :root="target.contentPath"
-        :selected="selectedFolder"
-        @select="selectedFolder = $event"
-      />
 
       <div class="grouped listing">
+        <div class="list-head">
+          <span class="col-name">Post</span>
+          <span class="col-folder">Folder</span>
+          <span class="col-state">State</span>
+        </div>
+
         <button v-for="e in entries" :key="e.path" class="row" @click="openEntry(e.path)">
-          <span
-            v-if="drafts.has(e.path)"
-            class="seal"
-            title="Unsaved draft in this browser"
-            aria-label="unsaved draft"
-          />
-          <span v-else class="seal-gap" aria-hidden="true" />
-          <span class="row-text">
-            <span class="row-name">{{ e.name }}</span>
+          <span class="col-name row-name">{{ e.name }}</span>
+          <span class="col-folder mono muted">{{ e.folder || "Root" }}</span>
+          <span class="col-state">
+            <span v-if="drafts.has(e.path)" class="state unsaved">
+              <span class="seal" aria-hidden="true" />Unsaved edits
+            </span>
+            <span v-else class="state muted">{{ target?.workingBranch ? "On this branch" : "Published" }}</span>
           </span>
-          <span v-if="drafts.has(e.path)" class="row-sub unsaved">Unsaved</span>
-          <span v-else-if="e.folder" class="row-sub mono">{{ e.folder }}</span>
         </button>
 
-        <p v-if="postsState.loading" class="empty muted">Reading the repository...</p>
-        <p v-else-if="!entries.length && filter" class="empty muted">
-          Nothing matches "{{ filter }}".
+        <p v-if="postsState.loading && !entries.length" class="empty muted">
+          Reading the repository...
         </p>
-        <p v-else-if="!entries.length" class="empty muted">
-          No posts in this folder yet. New post starts one.
+        <p v-else-if="!entries.length && (filter || onlyUnsaved)" class="empty muted">
+          Nothing matches that filter.
+        </p>
+        <p v-else-if="!entries.length" class="empty">
+          <span class="empty-title">No posts here yet</span>
+          <span class="muted">New post creates one in {{ location }}.</span>
         </p>
       </div>
-    </div>
 
-    <p class="hint count-note">
-      {{ entries.length }} {{ entries.length === 1 ? "file" : "files" }} in
-      <span class="mono">{{
-        selectedFolder ? `${target?.contentPath}/${selectedFolder}` : target?.contentPath
-      }}</span>
-    </p>
+      <p class="hint count-note">
+        {{ entries.length }} of {{ inFolder.length }}
+        {{ inFolder.length === 1 ? "file" : "files" }} shown
+      </p>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.avatar {
-  border-radius: 50%;
-  display: block;
-  flex-shrink: 0;
-}
-
-.branch-menu {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.branch-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  max-width: 220px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-}
-
-.caret {
-  color: var(--ink-muted);
-  flex-shrink: 0;
-}
-
-.branch-panel {
-  left: 0;
-}
-
-.menu-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-}
-
-.menu-sub {
-  font-size: 0.75rem;
-  color: var(--ink-muted);
-}
-
-.menu-empty {
-  margin: 0;
-  padding: 0.5rem 0.6rem;
-  font-size: 0.8125rem;
-  color: var(--ink-muted);
-}
-
 .toolbar {
   display: flex;
   gap: 0.6rem;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.7rem;
+  transform: translateY(-50%);
+  color: var(--ink-muted);
+  pointer-events: none;
 }
 
 .search {
-  flex: 1;
-  min-width: 0;
+  padding-left: 2.1rem;
+}
+
+.hotkey {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: transparent;
+  border-color: var(--separator);
+  box-shadow: none;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.filter-toggle:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+.filter-toggle.on {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .composer {
-  margin-bottom: 1.5rem;
-  max-width: 520px;
+  margin-bottom: 1.25rem;
+  max-width: 720px;
+}
+
+.composer-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
 }
 
 .composer-actions {
@@ -329,51 +343,72 @@ function signOut(): void {
   gap: 0.5rem;
 }
 
-.scope-hint {
-  display: block;
-  margin-top: 0.35rem;
-  color: var(--ink-muted);
-}
-
-.explorer {
+.listing .row,
+.list-head {
   display: grid;
-  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
-  gap: 2rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 14rem) minmax(0, 11rem);
+  gap: 1rem;
+  align-items: center;
 }
 
-.listing {
-  min-width: 0;
+.list-head {
+  padding: 0.6rem 1.1rem;
+  box-shadow: inset 0 -1px 0 var(--separator);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
 }
 
 .row + .row {
   box-shadow: inset 0 1px 0 var(--separator);
 }
 
-.seal-gap {
-  width: 6px;
-  flex-shrink: 0;
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
 }
 
-.unsaved {
+.state.unsaved {
   color: var(--accent);
 }
 
+.scope-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--ink-muted);
+}
+
 .empty {
-  padding: 1.5rem 1rem;
+  display: grid;
+  gap: 0.2rem;
+  padding: 2.5rem 1.1rem;
   margin: 0;
   text-align: center;
   font-size: 0.875rem;
+}
+
+.empty-title {
+  color: var(--ink);
+  font-weight: 500;
 }
 
 .count-note {
   margin-top: 1rem;
 }
 
-@media (max-width: 760px) {
-  .explorer {
+@media (max-width: 820px) {
+  .listing .row,
+  .list-head {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 9rem);
+  }
+
+  .col-folder {
+    display: none;
+  }
+
+  .composer-fields {
     grid-template-columns: 1fr;
-    gap: 1rem;
   }
 }
 </style>
