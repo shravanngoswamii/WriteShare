@@ -11,13 +11,18 @@ A serverless, Markdown-native writing desk for GitHub-backed blogs (Astro, Next,
 
 ## Usage
 
-1. Sign in with GitHub (or paste a token).
-2. Repositories screen: add any repo as `owner/repo` and point it at a content path (default `src/content/blog`); its default branch is detected automatically.
-3. Posts screen: folder tree on the left, files on the right, `*` marks unsaved local drafts. Compose or open one.
-4. Editor: metadata in a collapsible top bar with permalink preview, body is WYSIWYG. Every edit is saved to the browser immediately. **Push** opens a dialog with an editable commit message (template-driven) and commits to `draft/<slug>`; **Open PR** publishes the review.
-5. Repo > Manage: settings (content path, preview URL template, commit template), draft branch cleanup, and pull request merge (squash default, delete-branch-after-merge) or close.
+A sidebar holds the context you are writing in (repository, branch, folders) and the three places you work: **All posts**, **Review** and **Settings**.
 
-Autosaving straight to GitHub (skipping the Push step) is available in settings under `writeshare.settings` via the editor, off by default.
+1. Sign in with GitHub (or paste a token).
+2. Repositories: add any repo as `owner/repo` and point it at a content path (default `src/content/blog`); its default branch is detected automatically. Switch repos later from the sidebar.
+3. All posts: the files in the current folder, with unsaved local edits marked. Compose or open one.
+4. Editor: body is WYSIWYG, metadata sits in a rail beside it with a permalink and link preview. Every edit is saved to the browser immediately. A bar under the title names the stage the post is in and the single action that moves it on: **Push** (commit to `draft/<slug>`), then **Open pull request**.
+5. Review: every draft branch paired with its pull request, so you can open a PR, merge it (squash by default, deleting the branch after) or discard the branch.
+6. Settings: content path, preview URL, commit template, autosave and palette.
+
+Keyboard: `/` focuses search and `n` starts a post on the posts list, `Cmd/Ctrl+S` pushes in the editor.
+
+Autosaving straight to GitHub (skipping the Push step) is a setting, off by default.
 
 ## Configure a repo with writeshare.yml
 
@@ -69,7 +74,7 @@ Snippets are inserted as source text and round-trip untouched; the editor does n
 
 ## Branches
 
-Posts screen topbar has a branch picker: browse the default branch or any `draft/*` branch, and edits push to the branch you picked. When the working branch is the default branch, PR buttons hide because commits there publish directly.
+The sidebar picks the branch you browse: the default branch or any `draft/*` branch. While browsing the default branch, edits you push get their own `draft/<slug>` branch, so nothing lands on it without a merge. Browsing a draft branch pushes straight onto it.
 
 ## Permissions and sign-out
 
